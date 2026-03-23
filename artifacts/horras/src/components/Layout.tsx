@@ -1,23 +1,27 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useApp } from "@/context/AppContext";
-import { Shield, Menu, X, LogOut, ChevronLeft } from "lucide-react";
+import { useLang } from "@/context/LangContext";
+import { Shield, Menu, X, LogOut, ChevronLeft, ChevronRight, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useApp();
+  const { t, lang, toggleLang, isRTL } = useLang();
   const [location, setLocation] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const ChevronDir = isRTL ? ChevronLeft : ChevronRight;
+
   const navLinks = [
-    { label: "الرئيسية", path: "/" },
-    { label: "افحص الرابط", path: "/check-link" },
-    { label: "اختبر أمانك", path: "/security-test" },
-    { label: "بلّغ عن احتيال", path: "/report" },
-    { label: "تعلّم بسرعة", path: "/learn" },
-    { label: "أدوات الأمان", path: "/tools" },
-    { label: "عن المنصة", path: "/about" },
+    { labelKey: "nav.home", path: "/" },
+    { labelKey: "nav.checkLink", path: "/check-link" },
+    { labelKey: "nav.securityTest", path: "/security-test" },
+    { labelKey: "nav.report", path: "/report" },
+    { labelKey: "nav.learn", path: "/learn" },
+    { labelKey: "nav.tools", path: "/tools" },
+    { labelKey: "nav.about", path: "/about" },
   ];
 
   return (
@@ -31,11 +35,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="bg-primary/20 p-2 rounded-xl border border-primary/30 group-hover:bg-primary/30 transition-colors">
                 <Shield className="w-6 h-6 text-primary" />
               </div>
-              <span className="text-2xl font-black tracking-tight">حراس</span>
+              <span className="text-2xl font-black tracking-tight">{t("brand.name")}</span>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex gap-1 lg:gap-2">
+            <nav className="hidden lg:flex gap-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.path}
@@ -46,18 +50,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               ))}
             </nav>
 
-            {/* Actions (Left Side) */}
-            <div className="hidden md:flex items-center gap-4">
-              <Button 
+            {/* Actions */}
+            <div className="hidden md:flex items-center gap-3">
+              {/* Language Toggle */}
+              <button
+                onClick={toggleLang}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-bold text-muted-foreground hover:text-white"
+                title={lang === "ar" ? "Switch to English" : "التحويل للعربية"}
+              >
+                <Globe className="w-4 h-4" />
+                <span>{lang === "ar" ? "EN" : "AR"}</span>
+              </button>
+
+              <Button
                 onClick={() => setLocation("/check-link")}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl px-5 hover:-translate-y-0.5 transition-transform"
               >
-                افحص رابط الآن
+                {t("nav.checkNow")}
               </Button>
 
               <div className="h-8 w-px bg-border mx-1"></div>
@@ -70,20 +84,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </div>
                     <span className="text-sm font-medium">{user.name}</span>
                   </Link>
-                  <Button variant="ghost" size="icon" onClick={logout} title="تسجيل خروج">
+                  <Button variant="ghost" size="icon" onClick={logout} title={t("nav.logout")}>
                     <LogOut className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                   </Button>
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <Button variant="ghost" onClick={() => setLocation("/login")}>دخول</Button>
-                  <Button variant="outline" className="border-white/10 hover:bg-white/5" onClick={() => setLocation("/signup")}>تسجيل</Button>
+                  <Button variant="ghost" onClick={() => setLocation("/login")}>{t("nav.login")}</Button>
+                  <Button variant="outline" className="border-white/10 hover:bg-white/5" onClick={() => setLocation("/signup")}>{t("nav.signup")}</Button>
                 </div>
               )}
             </div>
 
-            {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center">
+            {/* Mobile: Language toggle + Menu button */}
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                onClick={toggleLang}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-xs font-bold text-muted-foreground"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>{lang === "ar" ? "EN" : "AR"}</span>
+              </button>
               <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </Button>
@@ -102,11 +123,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             className="md:hidden border-b border-border bg-card/95 backdrop-blur-xl absolute top-20 left-0 right-0 z-40"
           >
             <div className="px-4 py-6 flex flex-col gap-4">
-              <Button 
+              <Button
                 onClick={() => { setLocation("/check-link"); setIsMobileMenuOpen(false); }}
                 className="w-full bg-primary text-primary-foreground font-bold"
               >
-                افحص رابط الآن
+                {t("nav.checkNow")}
               </Button>
               <div className="flex flex-col gap-1 border-y border-border py-4">
                 {navLinks.map((link) => (
@@ -118,8 +139,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       location === link.path ? "bg-primary/10 text-primary" : "text-muted-foreground"
                     }`}
                   >
-                    {link.label}
-                    <ChevronLeft className="w-4 h-4 opacity-50" />
+                    {t(link.labelKey)}
+                    <ChevronDir className="w-4 h-4 opacity-50" />
                   </Link>
                 ))}
               </div>
@@ -131,7 +152,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </div>
                     <div>
                       <p className="font-bold">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">لوحة التحكم</p>
+                      <p className="text-xs text-muted-foreground">{lang === "ar" ? "لوحة التحكم" : "Dashboard"}</p>
                     </div>
                   </Link>
                   <Button variant="ghost" size="icon" onClick={() => { logout(); setIsMobileMenuOpen(false); }}>
@@ -140,8 +161,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </div>
               ) : (
                 <div className="flex gap-3 pt-2">
-                  <Button className="flex-1" variant="outline" onClick={() => { setLocation("/login"); setIsMobileMenuOpen(false); }}>دخول</Button>
-                  <Button className="flex-1" variant="outline" onClick={() => { setLocation("/signup"); setIsMobileMenuOpen(false); }}>تسجيل</Button>
+                  <Button className="flex-1" variant="outline" onClick={() => { setLocation("/login"); setIsMobileMenuOpen(false); }}>{t("nav.login")}</Button>
+                  <Button className="flex-1" variant="outline" onClick={() => { setLocation("/signup"); setIsMobileMenuOpen(false); }}>{t("nav.signup")}</Button>
                 </div>
               )}
             </div>
@@ -161,46 +182,46 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div>
               <Link href="/" className="flex items-center gap-3 mb-6">
                 <Shield className="w-6 h-6 text-primary" />
-                <span className="text-2xl font-black">حراس</span>
+                <span className="text-2xl font-black">{t("brand.name")}</span>
               </Link>
               <p className="text-muted-foreground leading-relaxed text-sm">
-                منصة رقمية عربية رائدة لتعزيز الوعي بالأمن السيبراني وحماية الشباب من الاحتيال الرقمي والاختراقات في بيئة آمنة وتفاعلية.
+                {t("footer.description")}
               </p>
             </div>
-            
+
             <div>
-              <h4 className="font-bold text-lg mb-6">روابط سريعة</h4>
+              <h4 className="font-bold text-lg mb-6">{t("footer.quickLinks")}</h4>
               <ul className="flex flex-col gap-3 text-sm text-muted-foreground">
-                <li><Link href="/check-link" className="hover:text-primary transition-colors">افحص الرابط</Link></li>
-                <li><Link href="/security-test" className="hover:text-primary transition-colors">اختبر أمانك</Link></li>
-                <li><Link href="/report" className="hover:text-primary transition-colors">بلّغ عن احتيال</Link></li>
-                <li><Link href="/learn" className="hover:text-primary transition-colors">تعلّم بسرعة</Link></li>
+                <li><Link href="/check-link" className="hover:text-primary transition-colors">{t("nav.checkLink")}</Link></li>
+                <li><Link href="/security-test" className="hover:text-primary transition-colors">{t("nav.securityTest")}</Link></li>
+                <li><Link href="/report" className="hover:text-primary transition-colors">{t("nav.report")}</Link></li>
+                <li><Link href="/learn" className="hover:text-primary transition-colors">{t("nav.learn")}</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold text-lg mb-6">موارد</h4>
+              <h4 className="font-bold text-lg mb-6">{t("footer.resources")}</h4>
               <ul className="flex flex-col gap-3 text-sm text-muted-foreground">
-                <li><Link href="/tools" className="hover:text-primary transition-colors">أدوات الأمان</Link></li>
-                <li><Link href="/tools" className="hover:text-primary transition-colors">محاكي الاحتيال</Link></li>
-                <li><Link href="/" className="hover:text-primary transition-colors">الإحصائيات</Link></li>
+                <li><Link href="/tools" className="hover:text-primary transition-colors">{t("nav.tools")}</Link></li>
+                <li><Link href="/tools" className="hover:text-primary transition-colors">{t("footer.simulator")}</Link></li>
+                <li><Link href="/" className="hover:text-primary transition-colors">{t("footer.stats")}</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold text-lg mb-6">قانوني</h4>
+              <h4 className="font-bold text-lg mb-6">{t("footer.legal")}</h4>
               <ul className="flex flex-col gap-3 text-sm text-muted-foreground">
-                <li><Link href="/about" className="hover:text-primary transition-colors">عن المنصة</Link></li>
-                <li><Link href="/about" className="hover:text-primary transition-colors">سياسة الخصوصية</Link></li>
-                <li><Link href="/about" className="hover:text-primary transition-colors">شروط الاستخدام</Link></li>
+                <li><Link href="/about" className="hover:text-primary transition-colors">{t("footer.about")}</Link></li>
+                <li><Link href="/about" className="hover:text-primary transition-colors">{t("footer.privacy")}</Link></li>
+                <li><Link href="/about" className="hover:text-primary transition-colors">{t("footer.terms")}</Link></li>
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} حراس. جميع الحقوق محفوظة.</p>
-            <p className="text-xs max-w-md text-center md:text-left opacity-60">
-              تنويه: هذه المنصة تعليمية توعوية ولا تغني عن الإبلاغ الرسمي للجهات الأمنية المختصة في بلدك.
+            <p>© {new Date().getFullYear()} {t("brand.name")}. {t("footer.copyright")}</p>
+            <p className="text-xs max-w-md text-center opacity-60">
+              {t("footer.disclaimer")}
             </p>
           </div>
         </div>
