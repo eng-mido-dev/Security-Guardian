@@ -60,7 +60,7 @@ function VideoThumbnail({ url, title }: { url?: string; title: string }) {
   const [quality, setQuality] = useState<"maxresdefault" | "hqdefault" | "error">("maxresdefault");
   const videoId = url ? extractYouTubeId(url) : null;
   const thumbUrl = videoId && quality !== "error"
-    ? `https://img.youtube.com/vi/${videoId}/${quality}.jpg`
+    ? `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`
     : null;
 
   const handleImgError = () => {
@@ -117,9 +117,12 @@ export default function Learn() {
     .map((v) => ({
       id: `admin-${v.id}`,
       title: v.title,
-      desc: v.url,
+      titleEn: v.title,
+      desc: v.category ? `فيديو في تصنيف: ${v.category}` : "فيديو تعليمي في الأمن الرقمي",
+      descEn: v.category ? `Video category: ${v.category}` : "Digital security awareness video",
       duration: v.duration || "60s",
       category: v.category || "الاحتيال",
+      categoryEn: v.category || "Scams",
       url: v.url,
     }));
 

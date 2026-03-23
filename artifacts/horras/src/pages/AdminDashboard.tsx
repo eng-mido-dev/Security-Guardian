@@ -5,12 +5,44 @@ import { useLang } from "@/context/LangContext";
 import {
   Shield, Users, FileText, PlayCircle, TrendingUp, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
-  BarChart2, Eye, Database
+  BarChart2, Eye, Database, Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /youtube\.com\/watch\?v=([^&]+)/,
+    /youtu\.be\/([^?]+)/,
+    /youtube\.com\/embed\/([^?]+)/,
+    /youtube\.com\/shorts\/([^?]+)/,
+    /youtube\.com\/v\/([^?]+)/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+function VideoRowThumb({ url }: { url: string }) {
+  const [quality, setQuality] = useState<"mqdefault" | "default" | "error">("mqdefault");
+  const videoId = extractYouTubeId(url);
+  const src = videoId && quality !== "error" ? `https://i.ytimg.com/vi/${videoId}/${quality}.jpg` : null;
+  return (
+    <div className="w-16 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden relative group/thumb">
+      {src ? (
+        <img src={src} alt="" className="w-full h-full object-cover" onError={() => quality === "mqdefault" ? setQuality("default") : setQuality("error")} />
+      ) : (
+        <Youtube className="w-5 h-5 text-white/20" />
+      )}
+      {src && <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity"><Play className="w-3 h-3 text-white fill-white" /></div>}
+    </div>
+  );
+}
 
 interface Video {
   id: string;
@@ -184,8 +216,8 @@ export default function AdminDashboard() {
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
                         <div className="relative">
-                          <Youtube className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input value={newVideo.url} onChange={(e) => setNewVideo((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pe-9" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/..." />
+                          <Youtube className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                          <Input value={newVideo.url} onChange={(e) => setNewVideo((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pe-11" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
                         </div>
                       </div>
                       <div className="space-y-1.5">
@@ -221,8 +253,8 @@ export default function AdminDashboard() {
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
                           <div className="relative">
-                            <Youtube className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input value={editData.url ?? video.url} onChange={(e) => setEditData((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pe-9" style={{ direction: "ltr", textAlign: "left" }} />
+                            <Youtube className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                            <Input value={editData.url ?? video.url} onChange={(e) => setEditData((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pe-11" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
                           </div>
                         </div>
                         <div className="space-y-1.5">
@@ -240,16 +272,20 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 px-5 py-3.5">
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                        <PlayCircle className="w-4 h-4 text-primary" />
-                      </div>
+                    <div className="flex items-center gap-4 px-4 py-3">
+                      {video.url ? (
+                        <VideoRowThumb url={video.url} />
+                      ) : (
+                        <div className="w-16 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                          <PlayCircle className="w-4 h-4 text-primary" />
+                        </div>
+                      )}
                       <div className="flex-grow min-w-0">
                         <p className="font-medium text-sm">{video.title}</p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           {video.category && <span className="text-xs bg-white/5 text-muted-foreground px-2 py-0.5 rounded-full">{video.category}</span>}
                           {video.duration && <span className="text-xs text-muted-foreground/60">⏱ {video.duration}</span>}
-                          {video.url && <span className="text-xs text-blue-400/60 truncate max-w-[150px]" style={{ direction: "ltr" }}>{video.url}</span>}
+                          {video.url && <span className="text-xs text-emerald-400/70 flex items-center gap-1"><Youtube className="w-3 h-3" />{isRTL ? "رابط مرتبط" : "Link attached"}</span>}
                         </div>
                       </div>
                       <div className="flex gap-1.5 shrink-0">

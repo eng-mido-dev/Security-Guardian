@@ -36,7 +36,7 @@ function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: b
   const [quality, setQuality] = useState<"maxresdefault" | "hqdefault" | "error">("maxresdefault");
   const videoId = card.url ? extractYouTubeId(card.url) : null;
   const thumbUrl = videoId && quality !== "error"
-    ? `https://img.youtube.com/vi/${videoId}/${quality}.jpg`
+    ? `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`
     : null;
 
   return (
