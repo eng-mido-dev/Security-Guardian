@@ -21,9 +21,9 @@ interface Video {
 }
 
 const DEFAULT_VIDEOS: Video[] = [
-  { id: "1", title: "ماذا تفعل إذا تعرضت للابتزاز؟", url: "", category: "الاحتيال", duration: "90s" },
-  { id: "2", title: "أهمية التحقق الثنائي", url: "", category: "كلمات المرور", duration: "60s" },
-  { id: "3", title: "كيف تكتشف الرابط الاحتيالي؟", url: "", category: "الروابط", duration: "60s" },
+  { id: "1", title: "What to Do If Blackmailed? / ماذا تفعل إذا تعرضت للابتزاز؟", url: "", category: "الاحتيال", duration: "90s" },
+  { id: "2", title: "Importance of 2FA / أهمية التحقق الثنائي", url: "", category: "كلمات المرور", duration: "60s" },
+  { id: "3", title: "How to Spot a Phishing Link? / كيف تكتشف الرابط الاحتيالي؟", url: "", category: "الروابط", duration: "60s" },
 ];
 
 const MOCK_REPORTS = [
