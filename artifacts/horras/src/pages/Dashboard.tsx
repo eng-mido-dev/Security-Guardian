@@ -62,7 +62,6 @@ export default function Dashboard() {
     ...(quizScore !== null ? [{ icon: <ClipboardCheck className="w-4 h-4 text-emerald-400" />, text: `${t("dashboard.completedQuiz")} ${quizScore}%`, time: t("dashboard.today") }] : []),
     ...(linksChecked > 0 ? [{ icon: <Search className="w-4 h-4 text-blue-400" />, text: `${t("dashboard.checkedLinks")} ${linksChecked} ${linksChecked > 1 ? t("dashboard.links_plural") : t("dashboard.links")}`, time: t("dashboard.today") }] : []),
     ...(toolsChecked.length > 0 ? [{ icon: <CheckSquare className="w-4 h-4 text-primary" />, text: `${t("dashboard.toolsActivated")} ${toolsChecked.length} ${t("dashboard.securityTools")}`, time: t("dashboard.today") }] : []),
-    { icon: <Calendar className="w-4 h-4 text-muted-foreground" />, text: t("dashboard.joinedPlatform"), time: t("dashboard.onRegistration") },
   ];
 
   const recommendations = getRecommendations();
@@ -98,13 +97,13 @@ export default function Dashboard() {
             </div>
           </div>
           {user.joinDate && (
-            <div className="w-full bg-black/20 rounded-xl px-3 py-2.5 border border-white/5">
-              <p className="text-muted-foreground text-xs mb-0.5 flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {t("dashboard.joinDate")}
-              </p>
-              <p className="font-bold text-xs">
-                {new Date(user.joinDate).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
+            <div className="w-full bg-black/20 rounded-xl px-3 py-2 border border-white/5 flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-primary/60 shrink-0" />
+              <p className="text-muted-foreground text-xs">
+                <span className="text-white/50">{isRTL ? "عضو منذ:" : "Member since:"}</span>{" "}
+                <span className="font-semibold text-white/80">
+                  {new Date(user.joinDate).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { year: "numeric", month: "long" })}
+                </span>
               </p>
             </div>
           )}
@@ -145,13 +144,19 @@ export default function Dashboard() {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
         <h3 className="text-lg font-bold mb-3">{t("dashboard.activity")}</h3>
         <div className="glass-card rounded-2xl border-white/5 divide-y divide-white/5">
-          {recentActivity.map((item, i) => (
-            <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-              <div className="bg-black/30 p-2 rounded-xl border border-white/5 shrink-0">{item.icon}</div>
-              <p className="flex-grow text-sm">{item.text}</p>
-              <span className="text-xs text-muted-foreground shrink-0">{item.time}</span>
+          {recentActivity.length === 0 ? (
+            <div className="px-5 py-6 text-center text-sm text-muted-foreground">
+              {isRTL ? "لا توجد نشاطات بعد. ابدأ باختبار الأمان أو فحص رابط." : "No activity yet. Start with the security test or scan a link."}
             </div>
-          ))}
+          ) : (
+            recentActivity.map((item, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                <div className="bg-black/30 p-2 rounded-xl border border-white/5 shrink-0">{item.icon}</div>
+                <p className="flex-grow text-sm">{item.text}</p>
+                <span className="text-xs text-muted-foreground shrink-0">{item.time}</span>
+              </div>
+            ))
+          )}
         </div>
       </motion.div>
 

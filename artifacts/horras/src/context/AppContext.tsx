@@ -215,14 +215,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    setState((prev) => ({
-      ...prev,
+    if (state.user) {
+      saveUserActivity(state.user.email, {
+        quizScore: state.quizScore,
+        linksChecked: state.linksChecked,
+        toolsChecked: state.toolsChecked,
+      });
+    }
+    setState({
       user: null,
       quizScore: null,
       linksChecked: 0,
       profileSetup: false,
       toolsChecked: [],
-    }));
+    });
   };
 
   const setQuizScore = (score: number) => {

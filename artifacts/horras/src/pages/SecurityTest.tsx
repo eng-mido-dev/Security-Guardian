@@ -293,13 +293,13 @@ export default function SecurityTest() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 md:py-12 w-full flex-grow flex flex-col justify-center">
+    <div className="max-w-lg mx-auto px-4 py-6 md:py-10 w-full flex-grow flex flex-col justify-center">
 
       {/* Intro */}
       {step === "intro" && (
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-2xl p-5 md:p-8 text-center relative overflow-hidden"
+          className="glass-card rounded-3xl p-6 md:p-8 text-center relative overflow-hidden shadow-2xl shadow-black/60 ring-1 ring-white/[0.07]"
         >
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/15 blur-[60px] rounded-full pointer-events-none" />
           <div className="inline-flex bg-primary/10 p-4 rounded-2xl mb-5 border border-primary/20">
@@ -353,7 +353,7 @@ export default function SecurityTest() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isRTL ? 20 : -20 }}
               transition={{ duration: 0.3 }}
-              className="glass-card rounded-2xl p-4 md:p-6 border-primary/20"
+              className="glass-card rounded-3xl p-5 md:p-6 border-primary/20 shadow-2xl shadow-black/60 ring-1 ring-white/[0.07]"
             >
               <h2 className="text-base md:text-xl font-bold mb-4 leading-relaxed">
                 {isRTL ? QUESTIONS[currentQ].question : QUESTIONS[currentQ].questionEn}
@@ -404,7 +404,7 @@ export default function SecurityTest() {
         return (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            className="glass-card rounded-2xl p-4 md:p-6 border-primary/30 w-full"
+            className="glass-card rounded-3xl p-5 md:p-6 border-primary/30 w-full shadow-2xl shadow-black/60 ring-1 ring-white/[0.07]"
           >
             <div className="text-center mb-5">
               <div className="text-3xl mb-2">{rec.icon}</div>
