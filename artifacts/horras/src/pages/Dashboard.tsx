@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { CircularProgress } from "@/components/ui/circular-progress";
-import { ShieldCheck, Target, Link2, CheckSquare, Bell, ArrowLeft } from "lucide-react";
+import { ShieldCheck, Target, Link2, CheckSquare, Bell, ArrowLeft, User, ClipboardCheck, Search, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
@@ -45,6 +45,13 @@ export default function Dashboard() {
 
   const recommendations = getRecommendations();
 
+  const recentActivity = [
+    ...(quizScore !== null ? [{ icon: <ClipboardCheck className="w-4 h-4 text-emerald-400" />, text: `أكملت الاختبار الأمني بنتيجة ${quizScore}%`, time: "اليوم" }] : []),
+    ...(linksChecked > 0 ? [{ icon: <Search className="w-4 h-4 text-blue-400" />, text: `فحصت ${linksChecked} رابط${linksChecked > 1 ? ' روابط' : ''}`, time: "اليوم" }] : []),
+    ...(toolsChecked.length > 0 ? [{ icon: <CheckSquare className="w-4 h-4 text-primary" />, text: `فعّلت ${toolsChecked.length} من أدوات الأمان`, time: "اليوم" }] : []),
+    { icon: <Calendar className="w-4 h-4 text-muted-foreground" />, text: "انضممت إلى منصة حراس", time: "عند التسجيل" },
+  ];
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 w-full">
       <div className="mb-8">
@@ -54,63 +61,98 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         
-        {/* Profile / Main Score Card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2 glass-card rounded-[2rem] p-8 border-white/5 relative overflow-hidden flex flex-col md:flex-row items-center gap-8">
+        {/* Profile Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-[2rem] p-8 border-white/5 flex flex-col items-center text-center gap-4">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center">
+              <span className="text-2xl font-black text-primary">
+                {user.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="absolute -bottom-1 -left-1 bg-background rounded-full p-0.5">
+              <User className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{user.name}</h2>
+            <p className="text-muted-foreground text-sm mt-1">{user.email}</p>
+          </div>
+          <div className={`inline-flex items-center px-4 py-1.5 rounded-full border font-bold text-sm ${level.badgeColor}`}>
+            {level.label}
+          </div>
+          <div className="w-full mt-2 pt-4 border-t border-white/5 grid grid-cols-2 gap-3 text-sm">
+            <div className="bg-black/30 px-3 py-2 rounded-xl border border-white/5">
+              <span className="block text-muted-foreground text-xs mb-1">درجة الأمان</span>
+              <span className="font-bold text-base text-primary">{score}%</span>
+            </div>
+            <div className="bg-black/30 px-3 py-2 rounded-xl border border-white/5">
+              <span className="block text-muted-foreground text-xs mb-1">أدوات مفعّلة</span>
+              <span className="font-bold text-base">{toolsChecked.length}/8</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Security Score Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lg:col-span-2 glass-card rounded-[2rem] p-8 border-white/5 relative overflow-hidden flex flex-col md:flex-row items-center gap-8">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] rounded-full pointer-events-none"></div>
           
           <div className="shrink-0 relative">
             <CircularProgress 
               value={score} 
-              size={180} 
-              strokeWidth={14} 
+              size={160} 
+              strokeWidth={12} 
               colorClass={level.color} 
             />
           </div>
 
           <div className="text-center md:text-right flex-grow">
-            <div className={`inline-flex items-center px-4 py-1.5 rounded-full border mb-4 font-bold text-sm ${level.badgeColor}`}>
-              المستوى: {level.label}
-            </div>
             <h2 className="text-2xl font-bold mb-2">مؤشر الأمان الرقمي</h2>
-            <p className="text-muted-foreground mb-6 leading-relaxed max-w-md">
+            <p className="text-muted-foreground mb-5 leading-relaxed max-w-md text-sm">
               هذا المؤشر يعكس مدى تفاعلك مع المنصة وتطبيقك لممارسات الأمان. يمكنك زيادة درجتك عبر استكمال قائمة التحقق واجتياز الاختبار.
             </p>
-            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-              <div className="bg-black/40 px-4 py-2 rounded-xl border border-white/5 text-sm">
-                <span className="block text-muted-foreground mb-1">الروابط المفحوصة</span>
-                <span className="font-bold text-lg">{linksChecked}</span>
+            <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+              <div className="bg-black/40 px-3 py-2 rounded-xl border border-white/5 text-sm">
+                <span className="block text-muted-foreground mb-1 text-xs">الروابط المفحوصة</span>
+                <span className="font-bold">{linksChecked}</span>
               </div>
-              <div className="bg-black/40 px-4 py-2 rounded-xl border border-white/5 text-sm">
-                <span className="block text-muted-foreground mb-1">نتيجة الاختبار</span>
-                <span className="font-bold text-lg">{quizScore !== null ? `${quizScore}%` : 'لم يكتمل'}</span>
+              <div className="bg-black/40 px-3 py-2 rounded-xl border border-white/5 text-sm">
+                <span className="block text-muted-foreground mb-1 text-xs">نتيجة الاختبار</span>
+                <span className="font-bold">{quizScore !== null ? `${quizScore}%` : 'لم يكتمل'}</span>
               </div>
-              <div className="bg-black/40 px-4 py-2 rounded-xl border border-white/5 text-sm">
-                <span className="block text-muted-foreground mb-1">أدوات مفعّلة</span>
-                <span className="font-bold text-lg">{toolsChecked.length} / 8</span>
-              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
+              <Button size="sm" className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setLocation("/check-link")}>
+                <Link2 className="w-4 h-4 ml-1" /> افحص رابط
+              </Button>
+              <Button size="sm" variant="outline" className="rounded-xl border-white/10 hover:bg-white/5" onClick={() => setLocation("/security-test")}>
+                <Target className="w-4 h-4 ml-1" /> أعد الاختبار
+              </Button>
             </div>
           </div>
         </motion.div>
 
-        {/* Quick Action Card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card rounded-[2rem] p-8 border-white/5 flex flex-col">
-          <h3 className="text-xl font-bold mb-6">إجراءات سريعة</h3>
-          <div className="flex flex-col gap-3 flex-grow">
-            <Button variant="outline" className="justify-between h-14 rounded-xl border-white/10 hover:bg-white/5 bg-black/20" onClick={() => setLocation("/check-link")}>
-              <span className="flex items-center gap-2"><Link2 className="w-4 h-4 text-primary" /> افحص رابطاً مشبوهاً</span>
-              <ArrowLeft className="w-4 h-4 opacity-50" />
-            </Button>
-            <Button variant="outline" className="justify-between h-14 rounded-xl border-white/10 hover:bg-white/5 bg-black/20" onClick={() => setLocation("/security-test")}>
-              <span className="flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> أعد الاختبار الأمني</span>
-              <ArrowLeft className="w-4 h-4 opacity-50" />
-            </Button>
-            <Button variant="outline" className="justify-between h-14 rounded-xl border-white/10 hover:bg-white/5 bg-black/20" onClick={() => setLocation("/tools")}>
-              <span className="flex items-center gap-2"><CheckSquare className="w-4 h-4 text-primary" /> أكمل قائمة التحقق</span>
-              <ArrowLeft className="w-4 h-4 opacity-50" />
-            </Button>
-          </div>
-        </motion.div>
+      </div>
 
+      {/* Recent Activity */}
+      <div className="mb-8">
+        <h3 className="text-xl font-bold mb-4">النشاط الأخير</h3>
+        <div className="glass-card rounded-2xl border-white/5 divide-y divide-white/5">
+          {recentActivity.map((activity, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 + i * 0.05 }}
+              className="flex items-center gap-4 px-6 py-4"
+            >
+              <div className="bg-black/30 p-2 rounded-xl border border-white/5 shrink-0">
+                {activity.icon}
+              </div>
+              <p className="flex-grow text-sm font-medium">{activity.text}</p>
+              <span className="text-xs text-muted-foreground shrink-0">{activity.time}</span>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       <h3 className="text-2xl font-bold mb-6">نصائح مخصصة لك</h3>

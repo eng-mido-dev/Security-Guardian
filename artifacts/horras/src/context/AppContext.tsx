@@ -76,13 +76,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const getSecurityScore = () => {
     let score = 0;
-    if (state.quizScore !== null) score += 30; // completed quiz
-    if (state.linksChecked > 0) score += 30; // checked at least one link
-    if (state.profileSetup) score += 20; // profile setup
-    
-    // Tools checked (max 8 tools = 20 points)
-    const maxTools = 8;
-    score += Math.round((state.toolsChecked.length / maxTools) * 20);
+    if (state.quizScore !== null) score += 30; // completed quiz: +30
+    if (state.linksChecked > 0) score += 30;   // checked at least one link: +30
+    if (state.profileSetup) score += 20;        // profile setup / signup: +20
+    if (state.toolsChecked.length >= 8) score += 20; // completed full security checklist: +20
     
     return Math.min(100, score);
   };

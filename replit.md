@@ -21,7 +21,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── horras/             # حراس - Arabic cybersecurity platform (React + Vite)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -90,6 +91,18 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+
+### `artifacts/horras` (`@workspace/horras`)
+
+Arabic cybersecurity awareness platform "حراس" (Horras). Frontend-only React + Vite + Tailwind app.
+
+- Served at path `/` (root)
+- Full RTL Arabic layout with Tajawal font, dark theme (#0A0A0A), gold accents (#FFB800)
+- Pages: Home, CheckLink, SecurityTest, Report, Learn, Tools, About, Dashboard, Login, Signup
+- Global AppContext: tracks user auth (mock), quizScore, linksChecked, profileSetup, toolsChecked
+- Security Score Algorithm: quiz(30) + links(30) + profile(20) + tools(20) = max 100
+- Security levels: خبير (Expert ≥80), متوسط (Intermediate 50-79), في خطر (At Risk <50)
+- Dependencies: framer-motion, canvas-confetti, @types/canvas-confetti, lucide-react
 
 ### `scripts` (`@workspace/scripts`)
 

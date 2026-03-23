@@ -158,6 +158,61 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Learning Hub Preview */}
+      <section className="py-16 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-black mb-2">تعلّم في 60 ثانية</h2>
+              <p className="text-muted-foreground">فيديوهات قصيرة لتدريبك في أقل وقت ممكن</p>
+            </div>
+            <Button variant="outline" className="rounded-xl border-white/10 bg-black/20 hover:bg-white/5 hidden md:flex" onClick={() => setLocation("/learn")}>
+              شاهد المزيد من الفيديوهات
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { title: "ماذا تفعل إذا تعرضت للابتزاز؟", desc: "خطوات عملية للتعامل مع محاولات الابتزاز الإلكتروني.", duration: "90 ثانية", category: "الاحتيال" },
+              { title: "أهمية التحقق الثنائي", desc: "لماذا يعتبر التحقق الثنائي خط الدفاع الأهم لحساباتك.", duration: "60 ثانية", category: "كلمات المرور" },
+              { title: "كيف تكتشف الرابط الاحتيالي؟", desc: "تعلم العلامات الخمس التي تكشف الروابط المريبة.", duration: "60 ثانية", category: "الروابط" },
+            ].map((video, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="glass-card rounded-2xl overflow-hidden cursor-pointer group hover:bg-white/[0.04] transition-all"
+                onClick={() => setLocation("/learn")}
+              >
+                <div className="relative bg-gradient-to-br from-white/5 to-white/[0.02] h-44 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-xl shadow-primary/30">
+                    <PlayCircle className="w-8 h-8 text-primary-foreground fill-primary-foreground" />
+                  </div>
+                  <div className="absolute bottom-3 right-3 bg-black/70 text-xs px-2 py-1 rounded-lg text-muted-foreground flex items-center gap-1">
+                    <span className="w-3 h-3">⏱</span> {video.duration}
+                  </div>
+                  <div className="absolute top-3 right-3 bg-primary/20 text-primary text-xs px-2 py-1 rounded-lg border border-primary/20 font-medium">
+                    {video.category}
+                  </div>
+                </div>
+                <div className="p-5">
+                  <h3 className="font-bold text-base mb-2 leading-snug">{video.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{video.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center md:hidden">
+            <Button variant="outline" className="rounded-xl border-white/10 bg-black/20 hover:bg-white/5" onClick={() => setLocation("/learn")}>
+              شاهد المزيد من الفيديوهات
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24 relative z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
