@@ -14,6 +14,12 @@ export interface StoredUser {
   joinDate: string;
 }
 
+export interface UserActivity {
+  quizScore: number | null;
+  linksChecked: number;
+  toolsChecked: string[];
+}
+
 export interface AppState {
   user: User | null;
   quizScore: number | null;
@@ -35,6 +41,27 @@ const getStoredUsers = (): StoredUser[] => {
 
 const saveStoredUsers = (users: StoredUser[]) => {
   localStorage.setItem("horras_users", JSON.stringify(users));
+};
+
+const activityKey = (email: string) => `horras_activity_${email.toLowerCase()}`;
+
+const loadUserActivity = (email: string): UserActivity => {
+  try {
+    const raw = localStorage.getItem(activityKey(email));
+    if (!raw) return { quizScore: null, linksChecked: 0, toolsChecked: [] };
+    const parsed = JSON.parse(raw);
+    return {
+      quizScore: parsed.quizScore ?? null,
+      linksChecked: parsed.linksChecked ?? 0,
+      toolsChecked: Array.isArray(parsed.toolsChecked) ? parsed.toolsChecked : [],
+    };
+  } catch {
+    return { quizScore: null, linksChecked: 0, toolsChecked: [] };
+  }
+};
+
+const saveUserActivity = (email: string, activity: UserActivity) => {
+  localStorage.setItem(activityKey(email), JSON.stringify(activity));
 };
 
 interface LoginResult {
@@ -63,15 +90,27 @@ interface AppContextType extends AppState {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const DEFAULT_ACTIVITY: UserActivity = { quizScore: null, linksChecked: 0, toolsChecked: [] };
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(() => {
-    const saved = localStorage.getItem("horras_state");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        /* ignore */
+    try {
+      const saved = localStorage.getItem("horras_state");
+      if (saved) {
+        const parsed: AppState = JSON.parse(saved);
+        if (parsed.user) {
+          const activity = loadUserActivity(parsed.user.email);
+          return {
+            ...parsed,
+            quizScore: activity.quizScore,
+            linksChecked: activity.linksChecked,
+            toolsChecked: activity.toolsChecked,
+          };
+        }
+        return parsed;
       }
+    } catch {
+      /* ignore */
     }
     return {
       user: null,
@@ -84,6 +123,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem("horras_state", JSON.stringify(state));
+    if (state.user) {
+      saveUserActivity(state.user.email, {
+        quizScore: state.quizScore,
+        linksChecked: state.linksChecked,
+        toolsChecked: state.toolsChecked,
+      });
+    }
   }, [state]);
 
   const isAdmin = state.user?.role === "admin";
@@ -95,10 +141,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (password !== ADMIN_PASSWORD) {
         return { success: false, error: "wrong_password" };
       }
+      const activity = loadUserActivity(ADMIN_EMAIL);
+      const users = getStoredUsers();
+      const adminRecord = users.find((u) => u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+      const adminJoinDate = adminRecord?.joinDate ?? new Date().toISOString();
       setState((prev) => ({
         ...prev,
-        user: { name: "Admin", email: ADMIN_EMAIL, role: "admin", joinDate: new Date().toISOString() },
+        user: { name: "Admin", email: ADMIN_EMAIL, role: "admin", joinDate: adminJoinDate },
         profileSetup: true,
+        quizScore: activity.quizScore,
+        linksChecked: activity.linksChecked,
+        toolsChecked: activity.toolsChecked,
       }));
       return { success: true };
     }
@@ -108,10 +161,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!found) return { success: false, error: "user_not_found" };
     if (found.password !== password) return { success: false, error: "wrong_password" };
 
+    const activity = loadUserActivity(normalizedEmail);
     setState((prev) => ({
       ...prev,
       user: { name: found.name, email: found.email, role: "user", joinDate: found.joinDate },
       profileSetup: true,
+      quizScore: activity.quizScore,
+      linksChecked: activity.linksChecked,
+      toolsChecked: activity.toolsChecked,
     }));
     return { success: true };
   };
@@ -132,16 +189,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newUser: StoredUser = { name: name.trim(), email: normalizedEmail, password, joinDate };
     saveStoredUsers([...users, newUser]);
 
+    saveUserActivity(normalizedEmail, DEFAULT_ACTIVITY);
+
     setState((prev) => ({
       ...prev,
       user: { name: name.trim(), email: normalizedEmail, role: "user", joinDate },
       profileSetup: true,
+      quizScore: null,
+      linksChecked: 0,
+      toolsChecked: [],
     }));
     return { success: true };
   };
 
   const login = (user: User) => {
-    setState((prev) => ({ ...prev, user, profileSetup: true }));
+    const activity = loadUserActivity(user.email);
+    setState((prev) => ({
+      ...prev,
+      user,
+      profileSetup: true,
+      quizScore: activity.quizScore,
+      linksChecked: activity.linksChecked,
+      toolsChecked: activity.toolsChecked,
+    }));
   };
 
   const logout = () => {
