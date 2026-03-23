@@ -198,7 +198,7 @@ export default function CheckLink() {
                 if (scanStatus !== "idle" && scanStatus !== "scanning") reset();
               }}
               disabled={scanStatus === "scanning"}
-              className="h-14 pr-14 pl-4 text-sm rounded-2xl bg-black/40 border-white/10 focus-visible:ring-primary/50"
+              className="h-14 pr-14 pl-4 text-sm rounded-2xl bg-black/40 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50"
             />
           </div>
           <Button
