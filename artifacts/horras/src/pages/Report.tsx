@@ -1,8 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, UploadCloud, ShieldAlert, CheckCircle2, X, FileImage, Loader2 } from "lucide-react";
+import {
+  AlertTriangle, UploadCloud, ShieldAlert, CheckCircle2, X,
+  Loader2, ChevronDown, LogIn, UserPlus, Shield,
+} from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import LoginModal from "@/components/LoginModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useLang } from "@/context/LangContext";
+import { useLocation } from "wouter";
 
 interface UploadedFile {
   name: string;
@@ -36,15 +39,93 @@ const FRAUD_TYPES_EN = [
   { value: "other", label: "Other" },
 ];
 
+function CustomSelect({
+  value, onChange, options, placeholder, isRTL, error,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder: string;
+  isRTL: boolean;
+  error: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = options.find((o) => o.value === value);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full h-12 rounded-xl border px-4 flex items-center justify-between gap-3 text-sm transition-all duration-200 bg-[#0d0d0f] ${
+          open
+            ? "border-primary ring-2 ring-primary/30 shadow-[0_0_12px_rgba(255,184,0,0.15)]"
+            : error
+            ? "border-destructive"
+            : "border-white/10 hover:border-primary/40"
+        }`}
+      >
+        <span className={selected ? "text-white font-medium" : "text-muted-foreground"}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? "rotate-180 text-primary" : ""}`}
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className={`absolute z-50 w-full mt-2 bg-[#0d0d0f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden ${isRTL ? "right-0" : "left-0"}`}
+          >
+            <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+            <div className="py-1.5">
+              {options.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { onChange(opt.value); setOpen(false); }}
+                  className={`w-full px-4 py-2.5 text-sm text-start flex items-center gap-2.5 transition-all ${
+                    value === opt.value
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  {value === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="h-px bg-white/5" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function Report() {
   const { toast } = useToast();
   const { t, isRTL } = useLang();
   const { user } = useApp();
+  const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [fraudType, setFraudType] = useState("");
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [fraudTypeError, setFraudTypeError] = useState(false);
 
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
@@ -56,15 +137,12 @@ export default function Report() {
   const handleFile = (file: File) => {
     if (!file.type.match(/image\/(png|jpeg|jpg)/)) return;
     if (file.size > 5 * 1024 * 1024) return;
-
     setIsUploading(true);
     setUploadProgress(0);
     setUploadDone(false);
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const previewUrl = e.target?.result as string;
-
       let progress = 0;
       const interval = setInterval(() => {
         progress += Math.random() * 18 + 8;
@@ -106,11 +184,7 @@ export default function Report() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) { setShowLoginModal(true); return; }
-    if (!fraudType) {
-      setFraudTypeError(true);
-      return;
-    }
+    if (!fraudType) { setFraudTypeError(true); return; }
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
@@ -138,161 +212,202 @@ export default function Report() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 md:py-20 w-full">
+      {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <div className="bg-primary/10 p-3 rounded-2xl border border-primary/20">
+        <div className="bg-primary/10 p-3 rounded-2xl border border-primary/20 shrink-0">
           <AlertTriangle className="w-8 h-8 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-black">{t("report.title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("report.subtitle")}</p>
+          <h1 className="text-2xl md:text-3xl font-black">{t("report.title")}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{t("report.subtitle")}</p>
         </div>
       </div>
 
-      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="glass-card rounded-3xl p-8 border-white/5">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      {/* --- Login Gate Card (shown when not logged in) --- */}
+      {!user ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-[2rem] overflow-hidden border-white/5 relative"
+        >
+          {/* Blurred form silhouette behind */}
+          <div className="p-8 blur-sm pointer-events-none select-none opacity-40 space-y-5">
+            <div className="h-10 bg-white/5 rounded-xl" />
+            <div className="h-10 bg-white/5 rounded-xl" />
+            <div className="h-24 bg-white/5 rounded-xl" />
+            <div className="h-28 bg-white/5 rounded-xl border-2 border-dashed border-white/10" />
+            <div className="h-12 bg-white/5 rounded-xl" />
+          </div>
 
-          {/* Fraud Type */}
-          <div className="space-y-2">
-            <Label htmlFor="type" className="text-base font-bold">
-              {t("report.fraudType")} <span className="text-destructive">*</span>
-            </Label>
-            <div className="relative">
-              <select
-                id="type"
+          {/* Gate overlay */}
+          <div className="absolute inset-0 flex items-center justify-center p-6">
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-w-sm bg-[#0A0A0A]/90 backdrop-blur-2xl border border-primary/25 rounded-3xl p-8 text-center shadow-2xl shadow-black/60"
+            >
+              {/* Accent line */}
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-t-3xl" />
+
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/25 mb-6 mx-auto">
+                <Shield className="w-8 h-8 text-primary" />
+              </div>
+
+              <h2 className="text-xl font-black mb-2">
+                {isRTL ? "تسجيل الدخول مطلوب" : "Login Required"}
+              </h2>
+              <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+                {isRTL
+                  ? "يجب تسجيل الدخول أولاً للتمكن من الإبلاغ عن المحتوى الاحتيالي ومتابعة بلاغاتك."
+                  : "You need to sign in first to report scam content and track your submitted reports."}
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  size="lg"
+                  className="w-full rounded-xl font-bold gap-2"
+                  onClick={() => setLocation("/login")}
+                >
+                  <LogIn className="w-4 h-4" />
+                  {isRTL ? "تسجيل الدخول" : "Sign In"}
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full rounded-xl font-bold gap-2 border-white/10 hover:bg-white/5"
+                  onClick={() => setLocation("/signup")}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  {isRTL ? "إنشاء حساب جديد" : "Create Account"}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      ) : (
+        /* --- Report Form (logged-in users only) --- */
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="glass-card rounded-3xl p-6 md:p-8 border-white/5">
+          <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* Fraud Type — Custom Dropdown */}
+            <div className="space-y-2">
+              <Label className="text-base font-bold">
+                {t("report.fraudType")} <span className="text-destructive">*</span>
+              </Label>
+              <CustomSelect
                 value={fraudType}
-                onChange={(e) => { setFraudType(e.target.value); setFraudTypeError(false); }}
-                className={`w-full h-12 rounded-xl border bg-[#111] px-4 py-2 text-sm appearance-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary/60 focus:ring-offset-0 text-white ${fraudTypeError ? "border-destructive" : "border-white/10 hover:border-white/20"}`}
-                style={{ direction: isRTL ? "rtl" : "ltr" }}
-              >
-                <option value="" disabled style={{ color: "#666" }}>
-                  {isRTL ? "اختر نوع الاحتيال..." : "Select fraud type..."}
-                </option>
-                {(isRTL ? FRAUD_TYPES_AR : FRAUD_TYPES_EN).map((opt) => (
-                  <option key={opt.value} value={opt.value} style={{ background: "#111", color: "white" }}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <div className={`absolute top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground ${isRTL ? "left-3" : "right-3"}`}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </div>
+                onChange={(v) => { setFraudType(v); setFraudTypeError(false); }}
+                options={isRTL ? FRAUD_TYPES_AR : FRAUD_TYPES_EN}
+                placeholder={isRTL ? "اختر نوع الاحتيال..." : "Select fraud type..."}
+                isRTL={isRTL}
+                error={fraudTypeError}
+              />
+              <AnimatePresence>
+                {fraudTypeError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="text-destructive text-xs"
+                  >
+                    {t("report.fraudTypeRequired")}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
-            <AnimatePresence>
-              {fraudTypeError && (
-                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-destructive text-xs">
-                  {t("report.fraudTypeRequired")}
-                </motion.p>
+
+            {/* URL */}
+            <div className="space-y-2">
+              <Label htmlFor="url" className="text-base font-bold">{t("report.suspiciousUrl")}</Label>
+              <Input
+                id="url"
+                type="url"
+                placeholder="https://..."
+                className="h-12 rounded-xl bg-black/40 border-white/10 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                style={{ direction: "ltr", textAlign: "left" }}
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="desc" className="text-base font-bold">{t("report.description")}</Label>
+              <Textarea
+                id="desc"
+                placeholder={t("report.descPlaceholder")}
+                className="min-h-[120px] rounded-xl bg-black/40 border-white/10 resize-none p-4 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            {/* File Upload */}
+            <div className="space-y-3">
+              <Label className="text-base font-bold">{t("report.screenshot")}</Label>
+
+              {!uploadedFile && !isUploading && (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${isDragOver ? "border-primary bg-primary/10" : "border-white/20 hover:bg-white/5 hover:border-white/30"}`}
+                >
+                  <UploadCloud className={`w-10 h-10 mx-auto mb-3 transition-colors ${isDragOver ? "text-primary" : "text-muted-foreground"}`} />
+                  <p className="text-sm text-muted-foreground">{t("report.dragDrop")}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{t("report.fileTypes")}</p>
+                </div>
               )}
-            </AnimatePresence>
-          </div>
 
-          {/* URL */}
-          <div className="space-y-2">
-            <Label htmlFor="url" className="text-base font-bold">{t("report.suspiciousUrl")}</Label>
-            <Input
-              id="url"
-              type="url"
-              placeholder="https://..."
-              className="h-12 rounded-xl bg-black/40 border-white/10"
-              style={{ direction: "ltr", textAlign: "left" }}
-            />
-          </div>
+              {isUploading && (
+                <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="border border-white/10 rounded-xl p-5 bg-black/30">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+                    <span className="text-sm font-medium">{t("report.submitting")} {uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} className="h-2 [&>div]:bg-primary [&>div]:transition-all" />
+                </motion.div>
+              )}
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="desc" className="text-base font-bold">{t("report.description")}</Label>
-            <Textarea
-              id="desc"
-              placeholder={t("report.descPlaceholder")}
-              className="min-h-[120px] rounded-xl bg-black/40 border-white/10 resize-none p-4"
-            />
-          </div>
+              {uploadDone && uploadedFile && (
+                <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="border border-emerald-500/30 rounded-xl p-4 bg-emerald-500/5 flex items-center gap-4">
+                  <img src={uploadedFile.previewUrl} alt="preview" className="w-14 h-14 object-cover rounded-lg border border-white/10 shrink-0" />
+                  <div className="flex-grow min-w-0">
+                    <p className="text-sm font-medium truncate">{uploadedFile.name}</p>
+                    <p className="text-xs text-emerald-400 mt-0.5 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {t("report.fileUploaded")}
+                    </p>
+                  </div>
+                  <button type="button" onClick={removeFile} className="text-muted-foreground hover:text-destructive transition-colors shrink-0 p-1">
+                    <X className="w-5 h-5" />
+                  </button>
+                </motion.div>
+              )}
 
-          {/* File Upload */}
-          <div className="space-y-3">
-            <Label className="text-base font-bold">{t("report.screenshot")}</Label>
+              <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/jpg" className="hidden" onChange={handleFileChange} />
+            </div>
 
-            {!uploadedFile && !isUploading && (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDrop={handleDrop}
-                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                onDragLeave={() => setIsDragOver(false)}
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${isDragOver ? "border-primary bg-primary/10" : "border-white/20 hover:bg-white/5 hover:border-white/30"}`}
-              >
-                <UploadCloud className={`w-10 h-10 mx-auto mb-3 transition-colors ${isDragOver ? "text-primary" : "text-muted-foreground"}`} />
-                <p className="text-sm text-muted-foreground">{t("report.dragDrop")}</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">{t("report.fileTypes")}</p>
-              </div>
-            )}
+            {/* Anonymous */}
+            <div className="flex items-center gap-3 bg-white/5 p-4 rounded-xl border border-white/5">
+              <Checkbox id="anonymous" />
+              <Label htmlFor="anonymous" className="text-sm font-medium leading-none cursor-pointer">
+                {t("report.anonymous")}
+              </Label>
+            </div>
 
-            {isUploading && (
-              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="border border-white/10 rounded-xl p-5 bg-black/30">
-                <div className="flex items-center gap-3 mb-3">
-                  <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
-                  <span className="text-sm font-medium">{t("report.submitting")} {uploadProgress}%</span>
-                </div>
-                <Progress value={uploadProgress} className="h-2 [&>div]:bg-primary [&>div]:transition-all" />
-              </motion.div>
-            )}
+            {/* Disclaimer */}
+            <div className="bg-primary/10 border border-primary/30 p-4 rounded-xl flex items-start gap-3">
+              <ShieldAlert className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-primary/90 leading-relaxed">{t("report.disclaimer")}</p>
+            </div>
 
-            {uploadDone && uploadedFile && (
-              <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="border border-emerald-500/30 rounded-xl p-4 bg-emerald-500/5 flex items-center gap-4">
-                <img src={uploadedFile.previewUrl} alt="preview" className="w-14 h-14 object-cover rounded-lg border border-white/10 shrink-0" />
-                <div className="flex-grow min-w-0">
-                  <p className="text-sm font-medium truncate">{uploadedFile.name}</p>
-                  <p className="text-xs text-emerald-400 mt-0.5 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> {t("report.fileUploaded")}
-                  </p>
-                </div>
-                <button type="button" onClick={removeFile} className="text-muted-foreground hover:text-destructive transition-colors shrink-0 p-1">
-                  <X className="w-5 h-5" />
-                </button>
-              </motion.div>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/jpg"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
-
-          {/* Anonymous */}
-          <div className="flex items-center gap-3 bg-white/5 p-4 rounded-xl border border-white/5">
-            <Checkbox id="anonymous" />
-            <Label htmlFor="anonymous" className="text-sm font-medium leading-none cursor-pointer">
-              {t("report.anonymous")}
-            </Label>
-          </div>
-
-          {/* Disclaimer */}
-          <div className="bg-primary/10 border border-primary/30 p-4 rounded-xl flex items-start gap-3">
-            <ShieldAlert className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-            <p className="text-sm text-primary/90 leading-relaxed">{t("report.disclaimer")}</p>
-          </div>
-
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isSubmitting}
-            className="w-full h-14 text-lg font-bold rounded-xl"
-          >
-            {isSubmitting ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {t("report.submitting")}
-              </span>
-            ) : t("report.submit")}
-          </Button>
-        </form>
-      </motion.div>
-
-      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+            <Button type="submit" size="lg" disabled={isSubmitting} className="w-full h-14 text-lg font-bold rounded-xl">
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {t("report.submitting")}
+                </span>
+              ) : t("report.submit")}
+            </Button>
+          </form>
+        </motion.div>
+      )}
     </div>
   );
 }

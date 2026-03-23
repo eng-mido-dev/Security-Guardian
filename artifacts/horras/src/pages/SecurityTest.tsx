@@ -299,7 +299,7 @@ export default function SecurityTest() {
       {step === "intro" && (
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-[2rem] p-10 text-center relative overflow-hidden"
+          className="glass-card rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10 text-center relative overflow-hidden"
         >
           <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/20 blur-[80px] rounded-full pointer-events-none" />
           <div className="inline-flex bg-primary/10 p-5 rounded-3xl mb-8 border border-primary/20">
@@ -313,17 +313,17 @@ export default function SecurityTest() {
               ? "اختبار تفاعلي صُمم لتقييم مدى وعيك بالمخاطر السيبرانية ومعرفتك بأساسيات الحماية الرقمية."
               : "An interactive test designed to assess your awareness of cybersecurity risks and your knowledge of digital protection basics."}
           </p>
-          <div className="grid grid-cols-3 gap-4 mb-10 text-sm font-medium">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <span className="block text-primary text-2xl font-bold mb-1">10</span>
+          <div className="grid grid-cols-3 gap-3 mb-10 text-xs sm:text-sm font-medium">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4">
+              <span className="block text-primary text-xl sm:text-2xl font-bold mb-1">10</span>
               {isRTL ? "أسئلة" : "Questions"}
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <span className="block text-primary text-2xl font-bold mb-1">3-5</span>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4">
+              <span className="block text-primary text-xl sm:text-2xl font-bold mb-1">3-5</span>
               {isRTL ? "دقائق" : "Minutes"}
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <span className="block text-primary text-2xl font-bold mb-1">100%</span>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4">
+              <span className="block text-primary text-xl sm:text-2xl font-bold mb-1">100%</span>
               {isRTL ? "خصوصية" : "Private"}
             </div>
           </div>
@@ -337,15 +337,13 @@ export default function SecurityTest() {
       {/* Quiz */}
       {step === "quiz" && (
         <div className="w-full">
-          <div className="mb-8 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-muted-foreground font-bold">
-                {isRTL
-                  ? `السؤال ${currentQ + 1} من ${QUESTIONS.length}`
-                  : `Question ${currentQ + 1} of ${QUESTIONS.length}`}
-              </span>
-            </div>
-            <div className="w-1/2">
+          <div className="mb-5 md:mb-8 flex items-center justify-between gap-4">
+            <span className="text-muted-foreground font-bold text-sm md:text-base shrink-0">
+              {isRTL
+                ? `${currentQ + 1} / ${QUESTIONS.length}`
+                : `${currentQ + 1} / ${QUESTIONS.length}`}
+            </span>
+            <div className="flex-1">
               <Progress value={((currentQ) / QUESTIONS.length) * 100} className="h-2 [&>div]:bg-primary" />
             </div>
           </div>
@@ -357,17 +355,17 @@ export default function SecurityTest() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isRTL ? 20 : -20 }}
               transition={{ duration: 0.3 }}
-              className="glass-card rounded-[2rem] p-8 md:p-12 border-primary/20"
+              className="glass-card rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 lg:p-12 border-primary/20"
             >
-              <h2 className="text-2xl md:text-3xl font-bold mb-8 leading-relaxed">
+              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-6 md:mb-8 leading-relaxed">
                 {isRTL ? QUESTIONS[currentQ].question : QUESTIONS[currentQ].questionEn}
               </h2>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 {(isRTL ? QUESTIONS[currentQ].options : QUESTIONS[currentQ].optionsEn).map((opt, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedOption(i)}
-                    className={`${isRTL ? "text-right" : "text-left"} p-5 rounded-xl border transition-all duration-200 text-lg font-medium ${
+                    className={`${isRTL ? "text-right" : "text-left"} p-3 md:p-4 rounded-xl border transition-all duration-200 text-sm md:text-base font-medium leading-snug ${
                       selectedOption === i
                         ? "bg-primary/20 border-primary text-white shadow-[0_0_15px_rgba(255,184,0,0.15)]"
                         : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white"
@@ -408,7 +406,7 @@ export default function SecurityTest() {
         return (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            className="glass-card rounded-[2rem] p-8 md:p-12 border-primary/30 w-full"
+            className="glass-card rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 lg:p-12 border-primary/30 w-full"
           >
             <div className="text-center mb-8">
               <div className="text-4xl mb-4">{rec.icon}</div>
