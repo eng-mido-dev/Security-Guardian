@@ -96,15 +96,14 @@ export default function Login() {
         <form onSubmit={handleLogin} className="space-y-5" noValidate>
           <div className="space-y-2">
             <Label htmlFor="email">{t("login.email")}</Label>
-            <div className="relative">
-              <Mail className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+            <div className="relative" dir="ltr">
+              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pe-10 ${errors.email ? "border-destructive focus-visible:ring-destructive" : "border-white/10"}`}
-                style={{ direction: "ltr", textAlign: "left" }}
+                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.email ? "border-destructive focus-visible:ring-destructive" : "border-white/10"}`}
               />
             </div>
             <AnimatePresence>
@@ -121,11 +120,11 @@ export default function Login() {
               <Label htmlFor="password">{t("login.password")}</Label>
               <span className="text-xs text-primary cursor-pointer hover:underline">{t("login.forgotPassword")}</span>
             </div>
-            <div className="relative">
+            <div className="relative" dir="ltr">
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -134,8 +133,7 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pe-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : "border-white/10"}`}
-                style={{ direction: "ltr", textAlign: "left" }}
+                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : "border-white/10"}`}
               />
             </div>
             <AnimatePresence>

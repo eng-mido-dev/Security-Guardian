@@ -104,14 +104,14 @@ export default function Signup() {
         <form onSubmit={handleSignup} className="space-y-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="name">{t("signup.name")}</Label>
-            <div className="relative">
-              <User className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+            <div className="relative" dir="ltr">
+              <User className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
                 id="name"
                 type="text"
                 value={name}
                 onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pe-10 ${errors.name ? "border-destructive" : "border-white/10"}`}
+                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.name ? "border-destructive" : "border-white/10"}`}
               />
             </div>
             <AnimatePresence>
@@ -125,15 +125,14 @@ export default function Signup() {
 
           <div className="space-y-2">
             <Label htmlFor="email">{t("signup.email")}</Label>
-            <div className="relative">
-              <Mail className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+            <div className="relative" dir="ltr">
+              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pe-10 ${errors.email ? "border-destructive" : "border-white/10"}`}
-                style={{ direction: "ltr", textAlign: "left" }}
+                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.email ? "border-destructive" : "border-white/10"}`}
               />
             </div>
             <AnimatePresence>
@@ -147,8 +146,8 @@ export default function Signup() {
 
           <div className="space-y-2">
             <Label htmlFor="password">{t("signup.password")}</Label>
-            <div className="relative">
-              <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
+            <div className="relative" dir="ltr">
+              <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
               <Input
@@ -156,8 +155,7 @@ export default function Signup() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pe-10 ${errors.password ? "border-destructive" : "border-white/10"}`}
-                style={{ direction: "ltr", textAlign: "left" }}
+                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.password ? "border-destructive" : "border-white/10"}`}
               />
             </div>
             {password.length > 0 && (
@@ -178,20 +176,19 @@ export default function Signup() {
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">{t("signup.confirmPassword")}</Label>
-            <div className="relative">
-              <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
+            <div className="relative" dir="ltr">
+              <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
                 {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
               {confirmPassword && confirmPassword === password && (
-                <CheckCircle className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
+                <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
               )}
               <Input
                 id="confirmPassword"
                 type={showConfirm ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, confirmPassword: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pe-10 ${errors.confirmPassword ? "border-destructive" : confirmPassword && confirmPassword === password ? "border-emerald-400/50" : "border-white/10"}`}
-                style={{ direction: "ltr", textAlign: "left" }}
+                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.confirmPassword ? "border-destructive" : confirmPassword && confirmPassword === password ? "border-emerald-400/50" : "border-white/10"}`}
               />
             </div>
             <AnimatePresence>

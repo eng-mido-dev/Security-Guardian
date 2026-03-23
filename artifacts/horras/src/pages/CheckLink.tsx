@@ -183,11 +183,11 @@ export default function CheckLink() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
         <form onSubmit={handleCheck} className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-grow">
-            <Link2 className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+          <div className="relative flex-grow" dir="ltr">
+            <Link2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
             <Input
               type="url"
-              placeholder={t("checkLink.placeholder")}
+              placeholder="https://example.com/..."
               required
               value={url}
               onChange={(e) => {
@@ -195,8 +195,7 @@ export default function CheckLink() {
                 if (scanStatus !== "idle" && scanStatus !== "scanning") reset();
               }}
               disabled={scanStatus === "scanning"}
-              className="h-14 pe-10 text-sm rounded-2xl bg-black/40 border-white/10 focus-visible:ring-primary/50"
-              style={{ direction: "ltr", textAlign: "left" }}
+              className="h-14 pr-10 text-sm rounded-2xl bg-black/40 border-white/10 focus-visible:ring-primary/50"
             />
           </div>
           <Button

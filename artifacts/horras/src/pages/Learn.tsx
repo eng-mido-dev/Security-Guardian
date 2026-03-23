@@ -55,11 +55,17 @@ function extractYouTubeId(url: string): string | null {
 }
 
 function VideoThumbnail({ url, title }: { url?: string; title: string }) {
-  const [imgError, setImgError] = useState(false);
+  const [quality, setQuality] = useState<"maxresdefault" | "hqdefault" | "error">("maxresdefault");
   const videoId = url ? extractYouTubeId(url) : null;
-  const thumbUrl = videoId && !imgError
-    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+  const thumbUrl = videoId && quality !== "error"
+    ? `https://img.youtube.com/vi/${videoId}/${quality}.jpg`
     : null;
+
+  const handleImgError = () => {
+    if (quality === "maxresdefault") setQuality("hqdefault");
+    else setQuality("error");
+  };
+  const imgError = quality === "error";
 
   return (
     <div className="relative aspect-video bg-gradient-to-br from-white/5 to-black/40 border border-white/10 rounded-2xl overflow-hidden mb-4 group-hover:border-primary/40 transition-colors">
@@ -68,7 +74,7 @@ function VideoThumbnail({ url, title }: { url?: string; title: string }) {
           src={thumbUrl}
           alt={title}
           className="w-full h-full object-cover"
-          onError={() => setImgError(true)}
+          onError={handleImgError}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">

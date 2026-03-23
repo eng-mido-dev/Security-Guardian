@@ -97,25 +97,31 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <AnimatePresence>
                   {moreOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                      transition={{ duration: 0.15 }}
-                      className={`absolute top-full mt-1.5 w-44 bg-[#111] border border-white/10 rounded-xl shadow-2xl overflow-hidden ${isRTL ? "right-0" : "left-0"}`}
+                      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                      className={`absolute top-[calc(100%+8px)] w-48 bg-[#111]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-[100] ${isRTL ? "right-0" : "left-0"}`}
                     >
-                      {NAV_MORE.map((link) => (
-                        <Link
-                          key={link.path}
-                          href={link.path}
-                          className={`flex items-center px-4 py-2.5 text-sm transition-colors ${
-                            isActive(link.path)
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:text-white hover:bg-white/5"
-                          }`}
-                        >
-                          {t(link.labelKey)}
-                        </Link>
-                      ))}
+                      {/* Top accent line */}
+                      <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+                      <div className="py-1.5">
+                        {NAV_MORE.map((link) => (
+                          <Link
+                            key={link.path}
+                            href={link.path}
+                            className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-all ${
+                              isActive(link.path)
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-muted-foreground hover:text-white hover:bg-white/[0.06]"
+                            }`}
+                          >
+                            {isActive(link.path) && <div className="w-1 h-1 rounded-full bg-primary" />}
+                            {t(link.labelKey)}
+                          </Link>
+                        ))}
+                      </div>
+                      <div className="h-px bg-white/5" />
                     </motion.div>
                   )}
                 </AnimatePresence>

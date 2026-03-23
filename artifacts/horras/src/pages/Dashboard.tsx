@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { useLang } from "@/context/LangContext";
-import { CircularProgress } from "@/components/ui/circular-progress";
+import { HalfCircleGauge } from "@/components/ui/circular-progress";
 import {
   ShieldCheck, Target, Link2, CheckSquare, Bell,
   ArrowLeft, ArrowRight, User, ClipboardCheck, Search, Calendar
@@ -102,7 +102,9 @@ export default function Dashboard() {
         {/* Score card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lg:col-span-2 glass-card rounded-2xl p-6 border-white/5 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
           <div className="absolute top-0 end-0 w-48 h-48 bg-primary/5 blur-[80px] rounded-full pointer-events-none"></div>
-          <CircularProgress value={score} size={140} strokeWidth={10} colorClass={level.color} />
+          <div className="shrink-0">
+            <HalfCircleGauge value={score} isRTL={isRTL} labelAr="مؤشر الأمان" labelEn="Security Score" />
+          </div>
           <div className="text-center md:text-start flex-grow">
             <h2 className="text-xl font-bold mb-1.5">{t("dashboard.securityScore")}</h2>
             <p className="text-muted-foreground text-sm mb-4 leading-relaxed">{t("dashboard.scoreDesc")}</p>

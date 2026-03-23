@@ -1,0 +1,38 @@
+Role: Senior Full-stack Developer.
+Task: Refine and finalize the "Horras" (حُراس) platform based on the attached design and the following technical requirements:
+
+1. Branding & Metadata:
+
+Favicon & Title: Set the browser tab icon (favicon) to the site logo and the tab title to "حُراس - منصتكم للأمن الرقمي". Ensure the "Damma" (ُ) is present in the title and all logo instances.
+
+2. Authentication & Persistence:
+
+Sync Login/Signup: Connect the Signup and Login systems. Only users stored in the localStorage (or mock DB) from the Signup page should be allowed to log in.
+
+Admin Account: Hardcode a special admin access: admin@h.com / Admin.
+
+Validation: Fix the email and password input fields to include real-time validation (e.g., proper email format, minimum password length).
+
+3. Advanced Dashboards (Dual View):
+
+Admin View (admin@h.com): Create a professional layout for the admin. Add a Video Management section where the admin can input a Video URL (YouTube) and Title.
+
+User View: A clean dashboard focusing on the "Security Score Meter" (مؤشر الأمان). This meter should be a visual gauge (semi-circle or progress circle) that changes color (Red/Yellow/Green) based on user activity.
+
+IMPORTANT: Users should NOT see or have the ability to add videos.
+
+4. Functional Tools:
+
+Link Checker: Fix the UI and Logic. When a link is pasted, it must show a "Scanning..." animation followed by a detailed report (Safe/Unsafe) based on URL length and HTTPS.
+
+Video Thumbnails: In the "Learn" section, automatically generate and display the YouTube thumbnail for each video using its URL (e.g., https://img.youtube.com/vi/[VIDEO_ID]/hqdefault.jpg).
+
+5. UI/UX Refinement (i18n & Navigation):
+
+Professional Navbar: Redesign the Navbar to remove clutter. Create a "More" (المزيد) dropdown menu with a sleek, modern look for secondary links (About, Support, etc.).
+
+English Optimization: Ensure the Navbar and all sections are perfectly aligned and not crowded when switching to English (LTR).
+
+Responsive Design: Ensure all buttons and cards look consistent with the original screenshots.
+
+Tech Stack: React, Tailwind CSS, Lucide-React, Framer Motion.
