@@ -5,6 +5,15 @@ import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 
 const router = Router();
 
+function formatActivity(activity: typeof userActivityTable.$inferSelect) {
+  return {
+    quizScore: activity.quizScore,
+    linksChecked: activity.linksChecked,
+    toolsChecked: activity.toolsChecked,
+    failedTopics: activity.failedTopics,
+  };
+}
+
 router.get("/activity", authMiddleware, async (req: AuthRequest, res) => {
   const { id } = req.user!;
   let [activity] = await db
@@ -20,25 +29,23 @@ router.get("/activity", authMiddleware, async (req: AuthRequest, res) => {
       .returning();
   }
 
-  res.json({
-    quizScore: activity.quizScore,
-    linksChecked: activity.linksChecked,
-    toolsChecked: activity.toolsChecked,
-  });
+  res.json(formatActivity(activity));
 });
 
 router.patch("/activity", authMiddleware, async (req: AuthRequest, res) => {
   const { id } = req.user!;
-  const { quizScore, linksChecked, toolsChecked } = req.body as {
+  const { quizScore, linksChecked, toolsChecked, failedTopics } = req.body as {
     quizScore?: number | null;
     linksChecked?: number;
     toolsChecked?: string[];
+    failedTopics?: string[];
   };
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (quizScore !== undefined) updateData.quizScore = quizScore;
   if (linksChecked !== undefined) updateData.linksChecked = linksChecked;
   if (toolsChecked !== undefined) updateData.toolsChecked = toolsChecked;
+  if (failedTopics !== undefined) updateData.failedTopics = failedTopics;
 
   const existing = await db
     .select()
@@ -60,11 +67,7 @@ router.patch("/activity", authMiddleware, async (req: AuthRequest, res) => {
       .returning();
   }
 
-  res.json({
-    quizScore: activity.quizScore,
-    linksChecked: activity.linksChecked,
-    toolsChecked: activity.toolsChecked,
-  });
+  res.json(formatActivity(activity));
 });
 
 export default router;

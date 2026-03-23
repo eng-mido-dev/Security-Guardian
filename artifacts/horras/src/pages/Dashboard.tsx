@@ -1,25 +1,81 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { useLang } from "@/context/LangContext";
+import { api, type ApiVideo } from "@/lib/api";
 import { HalfCircleGauge } from "@/components/ui/circular-progress";
+import VideoModal from "@/components/VideoModal";
 import {
   ShieldCheck, Target, Link2, CheckSquare, Bell,
-  ArrowLeft, ArrowRight, User, ClipboardCheck, Search, Calendar
+  ArrowLeft, ArrowRight, User, ClipboardCheck, Search, Calendar,
+  PlayCircle, BookOpen, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminDashboard from "./AdminDashboard";
 
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  "Phishing": ["phishing", "فيشينج", "احتيال", "تصيد", "phish", "رابط مشبوه"],
+  "Password Security": ["password", "كلمة مرور", "كلمات مرور", "passwords", "مرور"],
+  "2FA": ["2fa", "مصادقة", "two-factor", "verification", "ثنائي"],
+  "Public Wi-Fi": ["wifi", "wi-fi", "واي فاي", "شبكة", "network", "vpn", "عامة"],
+  "Social Engineering": ["social engineering", "هندسة اجتماعية", "social", "هندسة", "خداع"],
+  "Privacy": ["privacy", "خصوصية", "تواصل اجتماعي", "social media"],
+  "Software Updates": ["update", "تحديث", "software", "تحديثات", "برامج"],
+};
+
+const CATEGORY_LABELS_AR: Record<string, string> = {
+  "Phishing": "التصيد الاحتيالي",
+  "Password Security": "أمان كلمة المرور",
+  "2FA": "المصادقة الثنائية",
+  "Public Wi-Fi": "الواي فاي العام",
+  "Social Engineering": "الهندسة الاجتماعية",
+  "Privacy": "الخصوصية",
+  "Software Updates": "تحديثات البرامج",
+};
+
+function videoMatchesCategory(video: ApiVideo, category: string): boolean {
+  const keywords = CATEGORY_KEYWORDS[category] ?? [];
+  const haystack = (video.category + " " + video.title).toLowerCase();
+  return keywords.some((kw) => haystack.includes(kw.toLowerCase()));
+}
+
+function getYouTubeThumbnail(url: string): string {
+  const match = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/
+  );
+  if (!match) return "https://placehold.co/320x180/111/555?text=Video";
+  return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+}
+
 export default function Dashboard() {
-  const { user, isAdmin, isLoading, quizScore, linksChecked, toolsChecked, getSecurityScore, getSecurityLevel } = useApp();
+  const { user, isAdmin, isLoading, quizScore, linksChecked, toolsChecked, failedTopics, getSecurityScore, getSecurityLevel } = useApp();
   const { t, isRTL } = useLang();
   const [, setLocation] = useLocation();
   const ArrowDir = isRTL ? ArrowLeft : ArrowRight;
 
+  const [reminderVideos, setReminderVideos] = useState<ApiVideo[]>([]);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<ApiVideo | null>(null);
+
   useEffect(() => {
     if (!isLoading && !user) setLocation("/login");
   }, [user, isLoading, setLocation]);
+
+  useEffect(() => {
+    if (failedTopics && failedTopics.length > 0) {
+      api.videos.list()
+        .then((videos) => {
+          const matched = videos.filter((v) =>
+            failedTopics.some((cat) => videoMatchesCategory(v, cat))
+          );
+          setReminderVideos(matched);
+        })
+        .catch(() => {});
+    } else {
+      setReminderVideos([]);
+    }
+  }, [failedTopics]);
 
   if (isLoading) {
     return (
@@ -31,10 +87,8 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  // Admin sees the Admin Dashboard
   if (isAdmin) return <AdminDashboard />;
 
-  // --- USER DASHBOARD ---
   const score = getSecurityScore();
   const level = getSecurityLevel();
 
@@ -148,6 +202,85 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* Watch Reminder — shown only when there are failed topics with matching videos */}
+      {failedTopics && failedTopics.length > 0 && reminderVideos.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="mb-8"
+        >
+          <div className="glass-card rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] overflow-hidden">
+            <div className="px-5 py-4 border-b border-amber-500/10 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0 mt-0.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-amber-300">
+                  {isRTL ? "مازلت تحتاج لتحسين أمانك" : "You Still Need to Improve Your Security"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isRTL
+                    ? "بناءً على نتائج اختبارك، شاهد هذه الفيديوهات لرفع درجتك الأمنية"
+                    : "Based on your quiz results, watch these videos to improve your security score"}
+                </p>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {failedTopics.map((cat) => (
+                    <span key={cat} className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-medium">
+                      {isRTL ? CATEGORY_LABELS_AR[cat] ?? cat : cat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4">
+              <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-hide">
+                {reminderVideos.map((video) => (
+                  <button
+                    key={video.id}
+                    onClick={() => { setActiveVideo(video); setVideoModalOpen(true); }}
+                    className="shrink-0 snap-start w-48 rounded-xl overflow-hidden border border-white/10 bg-black/40 group hover:border-amber-400/40 transition-all text-start"
+                  >
+                    <div className="relative">
+                      <img
+                        src={getYouTubeThumbnail(video.url)}
+                        alt={video.title}
+                        className="w-full h-24 object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            "https://placehold.co/320x180/111/555?text=Video";
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <PlayCircle className="w-8 h-8 text-amber-400 drop-shadow-lg" />
+                      </div>
+                    </div>
+                    <div className="p-2.5">
+                      <p className="text-xs font-semibold leading-snug line-clamp-2 text-white/90 group-hover:text-amber-300 transition-colors">
+                        {video.title}
+                      </p>
+                      {video.category && (
+                        <span className="text-[10px] text-primary/70 mt-0.5 block">{video.category}</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setLocation("/learn")}
+                className="flex items-center gap-1.5 text-xs text-amber-400/70 hover:text-amber-400 transition-colors mt-3 font-medium"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                {isRTL ? "تصفح جميع الفيديوهات التعليمية" : "Browse all educational videos"}
+                <ArrowDir className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Recent Activity */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
         <h3 className="text-lg font-bold mb-3">{t("dashboard.activity")}</h3>
@@ -183,6 +316,16 @@ export default function Dashboard() {
           ))}
         </div>
       </motion.div>
+
+      {activeVideo && (
+        <VideoModal
+          isOpen={videoModalOpen}
+          onClose={() => { setVideoModalOpen(false); setActiveVideo(null); }}
+          title={activeVideo.title}
+          url={activeVideo.url}
+          category={activeVideo.category}
+        />
+      )}
     </div>
   );
 }

@@ -29,6 +29,7 @@ export const userActivityTable = pgTable("user_activity", {
   quizScore: integer("quiz_score"),
   linksChecked: integer("links_checked").notNull().default(0),
   toolsChecked: text("tools_checked").array().notNull().default([]),
+  failedTopics: text("failed_topics").array().notNull().default([]),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

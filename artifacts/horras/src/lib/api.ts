@@ -52,6 +52,7 @@ export interface ApiActivity {
   quizScore: number | null;
   linksChecked: number;
   toolsChecked: string[];
+  failedTopics: string[];
 }
 
 export interface ApiVideo {
@@ -103,7 +104,7 @@ export const api = {
 
   activity: {
     get: () => request<ApiActivity>("/activity"),
-    update: (data: Partial<ApiActivity>) =>
+    update: (data: Partial<ApiActivity & { failedTopics: string[] }>) =>
       request<ApiActivity>("/activity", { method: "PATCH", body: JSON.stringify(data) }),
   },
 

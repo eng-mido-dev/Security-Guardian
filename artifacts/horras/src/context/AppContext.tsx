@@ -15,6 +15,7 @@ export interface AppState {
   linksChecked: number;
   profileSetup: boolean;
   toolsChecked: string[];
+  failedTopics: string[];
   isLoading: boolean;
 }
 
@@ -33,7 +34,7 @@ interface AppContextType extends AppState {
   validateLogin: (email: string, password: string) => Promise<LoginResult>;
   register: (name: string, email: string, password: string) => Promise<RegisterResult>;
   logout: () => void;
-  setQuizScore: (score: number) => Promise<void>;
+  setQuizResults: (score: number, failedTopics: string[]) => Promise<void>;
   incrementLinksChecked: () => Promise<void>;
   toggleToolChecked: (toolId: string) => Promise<void>;
   getSecurityScore: () => number;
@@ -48,6 +49,7 @@ const INITIAL_STATE: AppState = {
   linksChecked: 0,
   profileSetup: false,
   toolsChecked: [],
+  failedTopics: [],
   isLoading: true,
 };
 
@@ -63,6 +65,7 @@ function applyAuth(user: ApiUser, activity: ApiActivity): Partial<AppState> {
     quizScore: activity.quizScore,
     linksChecked: activity.linksChecked,
     toolsChecked: activity.toolsChecked,
+    failedTopics: activity.failedTopics ?? [],
     profileSetup: true,
     isLoading: false,
   };
@@ -70,7 +73,7 @@ function applyAuth(user: ApiUser, activity: ApiActivity): Partial<AppState> {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
-  const activityRef = useRef<ApiActivity>({ quizScore: null, linksChecked: 0, toolsChecked: [] });
+  const activityRef = useRef<ApiActivity>({ quizScore: null, linksChecked: 0, toolsChecked: [], failedTopics: [] });
 
   useEffect(() => {
     const token = api.auth.getToken();
@@ -128,10 +131,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState((p) => ({ ...p, isLoading: false }));
   };
 
-  const setQuizScore = async (score: number) => {
-    setState((p) => ({ ...p, quizScore: score }));
+  const setQuizResults = async (score: number, failedTopics: string[]) => {
+    setState((p) => ({ ...p, quizScore: score, failedTopics }));
     try {
-      await api.activity.update({ quizScore: score });
+      await api.activity.update({ quizScore: score, failedTopics });
     } catch {
       /* non-blocking */
     }
@@ -198,7 +201,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         validateLogin,
         register,
         logout,
-        setQuizScore,
+        setQuizResults,
         incrementLinksChecked,
         toggleToolChecked,
         getSecurityScore,

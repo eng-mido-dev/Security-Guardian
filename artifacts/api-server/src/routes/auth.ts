@@ -67,6 +67,7 @@ router.post("/auth/register", async (req, res) => {
       quizScore: activity.quizScore,
       linksChecked: activity.linksChecked,
       toolsChecked: activity.toolsChecked,
+      failedTopics: activity.failedTopics,
     },
   });
 });
@@ -129,6 +130,7 @@ router.post("/auth/login", async (req, res) => {
       quizScore: activity.quizScore,
       linksChecked: activity.linksChecked,
       toolsChecked: activity.toolsChecked,
+      failedTopics: activity.failedTopics,
     },
   });
 });
@@ -171,6 +173,7 @@ router.get("/auth/me", authMiddleware, async (req: AuthRequest, res) => {
       quizScore: activity.quizScore,
       linksChecked: activity.linksChecked,
       toolsChecked: activity.toolsChecked,
+      failedTopics: activity.failedTopics,
     },
   });
 });
