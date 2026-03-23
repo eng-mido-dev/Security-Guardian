@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, UploadCloud, ShieldAlert, CheckCircle2, X, FileImage, Loader2 } from "lucide-react";
+import { useApp } from "@/context/AppContext";
+import LoginModal from "@/components/LoginModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,10 +39,12 @@ const FRAUD_TYPES_EN = [
 export default function Report() {
   const { toast } = useToast();
   const { t, isRTL } = useLang();
+  const { user } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [fraudType, setFraudType] = useState("");
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [fraudTypeError, setFraudTypeError] = useState(false);
 
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
@@ -102,6 +106,7 @@ export default function Report() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) { setShowLoginModal(true); return; }
     if (!fraudType) {
       setFraudTypeError(true);
       return;
@@ -286,6 +291,8 @@ export default function Report() {
           </Button>
         </form>
       </motion.div>
+
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }

@@ -27,6 +27,11 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.checkNow": "افحص رابط الآن",
     "nav.login": "دخول",
     "nav.signup": "تسجيل",
+    "gate.title": "تسجيل الدخول مطلوب",
+    "gate.message": "يرجى تسجيل الدخول أولاً لتتمكن من استخدام هذه الخدمة",
+    "gate.loginBtn": "تسجيل الدخول",
+    "gate.signupBtn": "إنشاء حساب",
+    "gate.close": "إغلاق",
     "nav.logout": "تسجيل الخروج",
     // Hero
     "hero.title1": "احمِ نفسك من",
@@ -197,6 +202,11 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.checkNow": "Check Link Now",
     "nav.login": "Login",
     "nav.signup": "Sign Up",
+    "gate.title": "Login Required",
+    "gate.message": "Please log in first to use this service",
+    "gate.loginBtn": "Sign In",
+    "gate.signupBtn": "Create Account",
+    "gate.close": "Close",
     "nav.logout": "Logout",
     // Hero
     "hero.title1": "Protect Yourself from",
@@ -363,7 +373,7 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("horras_lang", lang);
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-    document.title = lang === "ar" ? "حُراس - منصتكم للأمن الرقمي" : "Horras - Your Digital Security Platform";
+    document.title = lang === "ar" ? "حُراس" : "Horras";
     if (lang === "en") {
       document.body.classList.add("lang-en");
       document.body.classList.remove("lang-ar");

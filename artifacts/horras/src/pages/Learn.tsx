@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Clock, PlayCircle, Youtube, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/LangContext";
+import { useApp } from "@/context/AppContext";
+import LoginModal from "@/components/LoginModal";
 
 interface AdminVideo {
   id: string;
@@ -97,8 +99,10 @@ function VideoThumbnail({ url, title }: { url?: string; title: string }) {
 
 export default function Learn() {
   const { isRTL } = useLang();
+  const { user } = useApp();
   const [activeTab, setActiveTab] = useState(0);
   const [adminVideos, setAdminVideos] = useState<AdminVideo[]>([]);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     try {
@@ -208,7 +212,10 @@ export default function Learn() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.25, delay: i * 0.04 }}
                 className="group cursor-pointer"
-                onClick={() => href && window.open(href, "_blank")}
+                onClick={() => {
+                  if (!user) { setShowLoginModal(true); return; }
+                  href && window.open(href, "_blank");
+                }}
               >
                 <div className="relative">
                   <VideoThumbnail url={lesson.url} title={isRTL ? lesson.title : (lesson.titleEn || lesson.title)} />
@@ -255,6 +262,8 @@ export default function Learn() {
           <p className="text-muted-foreground">{isRTL ? "لا توجد فيديوهات في هذا التصنيف" : "No videos in this category"}</p>
         </div>
       )}
+
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { ClipboardCheck, ArrowLeft, ArrowRight, ShieldCheck, Trophy } from "luci
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useApp } from "@/context/AppContext";
+import LoginModal from "@/components/LoginModal";
 import confetti from "canvas-confetti";
 
 const QUESTIONS = [
@@ -149,16 +150,20 @@ const RECOMMENDATIONS: Record<string, { label: string; color: string; icon: stri
 
 export default function SecurityTest() {
   const [, setLocation] = useLocation();
-  const { setQuizScore } = useApp();
+  const { setQuizScore, user } = useApp();
   
   const [step, setStep] = useState<"intro" | "quiz" | "result">("intro");
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [finalCorrect, setFinalCorrect] = useState(0);
   const [finalScore, setFinalScore] = useState(0);
 
-  const startQuiz = () => setStep("quiz");
+  const startQuiz = () => {
+    if (!user) { setShowLoginModal(true); return; }
+    setStep("quiz");
+  };
 
   const handleNext = () => {
     if (selectedOption === null) return;
@@ -382,6 +387,7 @@ export default function SecurityTest() {
         );
       })()}
 
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }

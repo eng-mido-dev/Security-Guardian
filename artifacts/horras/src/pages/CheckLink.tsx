@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
+import LoginModal from "@/components/LoginModal";
 import { useLang } from "@/context/LangContext";
 
 type ScanStatus = "idle" | "scanning" | "safe" | "suspicious" | "danger";
@@ -103,13 +104,15 @@ export default function CheckLink() {
   const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
   const [report, setReport] = useState<ScanReport | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
-  const { incrementLinksChecked } = useApp();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const { incrementLinksChecked, user } = useApp();
   const { t, isRTL } = useLang();
   const ArrowDir = isRTL ? ArrowLeft : ArrowRight;
 
   const handleCheck = (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
+    if (!user) { setShowLoginModal(true); return; }
 
     setScanStatus("scanning");
     setScanProgress(0);
@@ -334,6 +337,8 @@ export default function CheckLink() {
           ))}
         </div>
       )}
+
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }
