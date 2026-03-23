@@ -1,0 +1,13 @@
+packages:
+  "framer-motion": "For page transitions and smooth UI animations"
+  "canvas-confetti": "For celebratory effects when completing the security test"
+  "@types/canvas-confetti": "Type definitions for canvas-confetti"
+
+images:
+  - path: "artifacts/horras/public/images/hero-bg.png"
+    description: "Abstract dark background with glowing gold and amber digital cybersecurity nodes, shield motifs, and subtle grid patterns"
+    aspect_ratio: "16:9"
+
+notes:
+  - Global state managed via React Context (no real backend)
+  - Dark mode and RTL layout enforced globally
