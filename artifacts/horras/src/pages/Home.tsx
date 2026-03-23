@@ -33,7 +33,7 @@ interface VideoCardData {
 }
 
 function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: boolean; onClick: () => void }) {
-  const [quality, setQuality] = useState<"maxresdefault" | "hqdefault" | "error">("maxresdefault");
+  const [quality, setQuality] = useState<"hqdefault" | "mqdefault" | "error">("hqdefault");
   const videoId = card.url ? extractYouTubeId(card.url) : null;
   const thumbUrl = videoId && quality !== "error"
     ? `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`
@@ -55,7 +55,7 @@ function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: b
             alt={isRTL ? card.titleAr : card.titleEn}
             className="w-full h-full object-cover"
             onError={() => {
-              if (quality === "maxresdefault") setQuality("hqdefault");
+              if (quality === "hqdefault") setQuality("mqdefault");
               else setQuality("error");
             }}
           />
@@ -94,27 +94,21 @@ function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: b
   );
 }
 
-const STATIC_PREVIEWS: VideoCardData[] = [
-  { titleAr: "كيف تكتشف الرابط الاحتيالي؟", titleEn: "How to Spot a Phishing Link?", catAr: "الروابط", catEn: "Links", duration: "60s" },
-  { titleAr: "أهمية التحقق الثنائي", titleEn: "Importance of Two-Factor Auth", catAr: "كلمات المرور", catEn: "Passwords", duration: "60s" },
-  { titleAr: "ماذا تفعل إذا تعرضت للابتزاز؟", titleEn: "What to Do If Blackmailed?", catAr: "الاحتيال", catEn: "Scams", duration: "90s" },
-  { titleAr: "تأمين حساب واتساب", titleEn: "Secure Your WhatsApp", catAr: "الخصوصية", catEn: "Privacy", duration: "60s" },
-];
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { t, isRTL } = useLang();
   const ChevronDir = isRTL ? ChevronLeft : ChevronRight;
 
-  const [videoCards, setVideoCards] = useState<VideoCardData[]>(STATIC_PREVIEWS);
+  const [videoCards, setVideoCards] = useState<VideoCardData[]>([]);
 
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem("horras_videos") || "[]");
-      if (Array.isArray(stored) && stored.length > 0) {
-        const cards: VideoCardData[] = stored.slice(0, 4).map((v: { title?: string; titleAr?: string; description?: string; category?: string; duration?: string; url?: string }) => ({
-          titleAr: v.titleAr || v.title || "فيديو",
-          titleEn: v.title || v.titleAr || "Video",
+      if (Array.isArray(stored)) {
+        const cards: VideoCardData[] = stored.slice(0, 4).map((v: { title?: string; category?: string; duration?: string; url?: string }) => ({
+          titleAr: v.title || "فيديو",
+          titleEn: v.title || "Video",
           catAr: v.category || "توعية",
           catEn: v.category || "Awareness",
           duration: v.duration || "60s",
@@ -122,9 +116,7 @@ export default function Home() {
         }));
         setVideoCards(cards);
       }
-    } catch {
-      /* use static fallback */
-    }
+    } catch { /* ignore */ }
   }, []);
 
   const stats = [
@@ -284,19 +276,28 @@ export default function Home() {
               {t("learn.viewMore")}
             </Button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-            {videoCards.map((card, i) => (
-              <HomeVideoCard
-                key={i}
-                card={card}
-                isRTL={isRTL}
-                onClick={() => {
-                  if (card.url) window.open(card.url, "_blank", "noopener,noreferrer");
-                  else setLocation("/learn");
-                }}
-              />
-            ))}
-          </div>
+          {videoCards.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+              {videoCards.map((card, i) => (
+                <HomeVideoCard
+                  key={i}
+                  card={card}
+                  isRTL={isRTL}
+                  onClick={() => {
+                    if (card.url) window.open(card.url, "_blank", "noopener,noreferrer");
+                    else setLocation("/learn");
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-14 rounded-3xl border border-white/5 bg-white/[0.02]">
+              <PlayCircle className="w-10 h-10 text-white/15 mb-3" />
+              <p className="text-white/30 text-sm font-medium">
+                {isRTL ? "فيديوهات تعليمية قريباً" : "Educational videos coming soon"}
+              </p>
+            </div>
+          )}
           <div className="mt-6 text-center md:hidden">
             <Button variant="outline" className="rounded-xl border-white/10 text-sm" onClick={() => setLocation("/learn")}>{t("learn.viewMore")}</Button>
           </div>

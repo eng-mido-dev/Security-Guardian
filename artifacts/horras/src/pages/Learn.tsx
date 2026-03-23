@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Clock, PlayCircle, Youtube, BookOpen } from "lucide-react";
+import { Play, Clock, PlayCircle, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/LangContext";
 import { useApp } from "@/context/AppContext";
@@ -26,19 +26,6 @@ interface Lesson {
   url?: string;
 }
 
-const STATIC_LESSONS: Lesson[] = [
-  { id: 1, title: "كيف تكتشف الرابط الاحتيالي؟", titleEn: "How to Spot a Phishing Link?", desc: "تعلم قراءة الروابط واكتشاف التلاعب في 60 ثانية.", descEn: "Learn to read links and spot manipulation in 60 seconds.", duration: "60s", category: "الروابط", categoryEn: "Links" },
-  { id: 2, title: "أهمية التحقق الثنائي (2FA)", titleEn: "Importance of Two-Factor Auth", desc: "لماذا لا تكفي كلمة المرور وحدها لحمايتك؟", descEn: "Why isn't a password alone enough to protect you?", duration: "60s", category: "كلمات المرور", categoryEn: "Passwords" },
-  { id: 3, title: "ماذا تفعل إذا تعرضت للابتزاز؟", titleEn: "What to Do If Blackmailed?", desc: "خطوات عملية للتعامل مع الابتزاز الإلكتروني.", descEn: "Practical steps for dealing with online blackmail.", duration: "90s", category: "الاحتيال", categoryEn: "Scams" },
-  { id: 4, title: "كلمة مرور قوية في 30 ثانية", titleEn: "Strong Password in 30 Seconds", desc: "طريقة سهلة لإنشاء كلمات مرور معقدة وسهلة الحفظ.", descEn: "Easy way to create complex yet memorable passwords.", duration: "45s", category: "كلمات المرور", categoryEn: "Passwords" },
-  { id: 5, title: "علامات رسالة التصيد", titleEn: "Signs of a Phishing Email", desc: "كيف تتعرف على إيميل الاحتيال المالي.", descEn: "How to identify a financial fraud email.", duration: "60s", category: "الاحتيال", categoryEn: "Scams" },
-  { id: 6, title: "لا تشارك رمز OTP أبداً", titleEn: "Never Share Your OTP Code", desc: "خدع المهندسين الاجتماعيين لسرقة رمزك السري.", descEn: "Social engineering tricks to steal your secret code.", duration: "60s", category: "الاحتيال", categoryEn: "Scams" },
-  { id: 7, title: "تأمين حساب واتساب", titleEn: "Secure Your WhatsApp", desc: "إعدادات بسيطة تحميك من سرقة الواتساب.", descEn: "Simple settings to protect you from WhatsApp theft.", duration: "60s", category: "الخصوصية", categoryEn: "Privacy" },
-  { id: 8, title: "حماية خصوصيتك على الإنستغرام", titleEn: "Instagram Privacy Protection", desc: "من يرى بياناتك؟ وكيف تتحكم بها.", descEn: "Who sees your data? And how to control it.", duration: "75s", category: "الخصوصية", categoryEn: "Privacy" },
-];
-
-const AR_CATS = ["الكل", "الروابط", "كلمات المرور", "الاحتيال", "الخصوصية"];
-const EN_CATS = ["All", "Links", "Passwords", "Scams", "Privacy"];
 
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -57,14 +44,14 @@ function extractYouTubeId(url: string): string | null {
 }
 
 function VideoThumbnail({ url, title }: { url?: string; title: string }) {
-  const [quality, setQuality] = useState<"maxresdefault" | "hqdefault" | "error">("maxresdefault");
+  const [quality, setQuality] = useState<"hqdefault" | "mqdefault" | "error">("hqdefault");
   const videoId = url ? extractYouTubeId(url) : null;
   const thumbUrl = videoId && quality !== "error"
     ? `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`
     : null;
 
   const handleImgError = () => {
-    if (quality === "maxresdefault") setQuality("hqdefault");
+    if (quality === "hqdefault") setQuality("mqdefault");
     else setQuality("error");
   };
   const imgError = quality === "error";
@@ -111,37 +98,25 @@ export default function Learn() {
     } catch { /* ignore */ }
   }, []);
 
-  // Merge admin videos into lesson list
-  const adminLessons: Lesson[] = adminVideos
-    .filter((v) => v.url && extractYouTubeId(v.url))
-    .map((v) => ({
-      id: `admin-${v.id}`,
-      title: v.title,
-      titleEn: v.title,
-      desc: v.category ? `فيديو في تصنيف: ${v.category}` : "فيديو تعليمي في الأمن الرقمي",
-      descEn: v.category ? `Video category: ${v.category}` : "Digital security awareness video",
-      duration: v.duration || "60s",
-      category: v.category || "الاحتيال",
-      categoryEn: v.category || "Scams",
-      url: v.url,
-    }));
+  const allLessons: Lesson[] = adminVideos.map((v) => ({
+    id: `admin-${v.id}`,
+    title: v.title,
+    titleEn: v.title,
+    desc: v.category ? (isRTL ? `فيديو في تصنيف: ${v.category}` : `Category: ${v.category}`) : (isRTL ? "فيديو تعليمي في الأمن الرقمي" : "Digital security awareness video"),
+    descEn: v.category ? `Category: ${v.category}` : "Digital security awareness video",
+    duration: v.duration || "60s",
+    category: v.category || "",
+    categoryEn: v.category || "",
+    url: v.url,
+  }));
 
-  const allLessons = [...adminLessons, ...STATIC_LESSONS];
-
-  const categories = isRTL ? AR_CATS : EN_CATS;
-  const catMap: Record<string, string> = {
-    "الروابط": "Links", "Links": "الروابط",
-    "كلمات المرور": "Passwords", "Passwords": "كلمات المرور",
-    "الاحتيال": "Scams", "Scams": "الاحتيال",
-    "الخصوصية": "Privacy", "Privacy": "الخصوصية",
-  };
+  const uniqueCats = Array.from(new Set(allLessons.map((l) => l.category).filter(Boolean)));
+  const allLabel = isRTL ? "الكل" : "All";
+  const categories = [allLabel, ...uniqueCats];
 
   const filtered = activeTab === 0
     ? allLessons
-    : allLessons.filter((l) => {
-        const activeCat = categories[activeTab];
-        return l.category === activeCat || l.category === catMap[activeCat] || l.categoryEn === activeCat;
-      });
+    : allLessons.filter((l) => l.category === categories[activeTab]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 md:py-20 w-full">
@@ -177,20 +152,19 @@ export default function Learn() {
         ))}
       </div>
 
-      {/* Admin videos notice */}
-      {adminLessons.length > 0 && activeTab === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-2.5 mb-6 px-4 py-3 rounded-xl border border-primary/20 bg-primary/5 text-sm text-primary"
-        >
-          <Youtube className="w-4 h-4 shrink-0" />
-          <span>
-            {isRTL
-              ? `${adminLessons.length} فيديو مضاف من المدير يظهر في الأعلى`
-              : `${adminLessons.length} admin-added video${adminLessons.length > 1 ? "s" : ""} shown above`}
-          </span>
-        </motion.div>
+      {/* No videos at all */}
+      {allLessons.length === 0 && (
+        <div className="text-center py-24">
+          <div className="inline-flex bg-white/5 p-5 rounded-3xl border border-white/10 mb-5">
+            <Youtube className="w-10 h-10 text-white/20" />
+          </div>
+          <p className="text-lg font-bold text-white/40 mb-2">
+            {isRTL ? "لا توجد فيديوهات حتى الآن" : "No videos yet"}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {isRTL ? "سيضيف المدير فيديوهات تعليمية قريباً" : "Admin will add educational videos soon"}
+          </p>
+        </div>
       )}
 
       {/* Video Grid */}
@@ -204,7 +178,6 @@ export default function Learn() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
         >
           {filtered.map((lesson, i) => {
-            const isAdmin = String(lesson.id).startsWith("admin-");
             const videoId = lesson.url ? extractYouTubeId(lesson.url) : null;
             const href = videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined;
 
@@ -231,20 +204,11 @@ export default function Learn() {
 
                   {/* Category badge */}
                   <div className="absolute top-3 start-3 z-30">
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium backdrop-blur-sm ${isAdmin ? "bg-primary/30 text-primary border-primary/40" : "bg-white/10 text-white/80 border-white/10"}`}>
-                      {isRTL ? lesson.category : (lesson.categoryEn || lesson.category)}
+                    <span className="text-xs px-2 py-0.5 rounded-full border font-medium backdrop-blur-sm bg-primary/20 text-primary border-primary/30">
+                      {lesson.category || (isRTL ? "توعية" : "Awareness")}
                     </span>
                   </div>
 
-                  {/* Admin indicator */}
-                  {isAdmin && (
-                    <div className="absolute top-3 end-3 z-30">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 font-bold flex items-center gap-1">
-                        <Youtube className="w-3 h-3" />
-                        YT
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 <h3 className="font-bold text-sm mb-1 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
@@ -261,7 +225,7 @@ export default function Learn() {
 
       {filtered.length === 0 && (
         <div className="text-center py-20">
-          <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+          <Youtube className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
           <p className="text-muted-foreground">{isRTL ? "لا توجد فيديوهات في هذا التصنيف" : "No videos in this category"}</p>
         </div>
       )}

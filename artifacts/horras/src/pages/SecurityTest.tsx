@@ -293,7 +293,7 @@ export default function SecurityTest() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 md:py-10 w-full flex-grow flex flex-col justify-center">
+    <div className="max-w-md mx-auto px-4 py-6 md:py-10 w-full flex-grow flex flex-col justify-center">
 
       {/* Intro */}
       {step === "intro" && (

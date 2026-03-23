@@ -216,8 +216,8 @@ export default function AdminDashboard() {
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
                         <div className="relative">
-                          <Youtube className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                          <Input value={newVideo.url} onChange={(e) => setNewVideo((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pe-11" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
+                          <Youtube className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                          <Input value={newVideo.url} onChange={(e) => setNewVideo((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pe-12 ps-3" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
                         </div>
                       </div>
                       <div className="space-y-1.5">
@@ -253,8 +253,8 @@ export default function AdminDashboard() {
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
                           <div className="relative">
-                            <Youtube className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                            <Input value={editData.url ?? video.url} onChange={(e) => setEditData((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pe-11" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
+                            <Youtube className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                            <Input value={editData.url ?? video.url} onChange={(e) => setEditData((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pe-12 ps-3" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
                           </div>
                         </div>
                         <div className="space-y-1.5">

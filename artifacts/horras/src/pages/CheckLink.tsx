@@ -187,7 +187,7 @@ export default function CheckLink() {
 
         <form onSubmit={handleCheck} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-grow" dir="ltr">
-            <Link2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+            <Link2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none z-10" />
             <Input
               type="url"
               placeholder="https://example.com/..."
@@ -198,7 +198,7 @@ export default function CheckLink() {
                 if (scanStatus !== "idle" && scanStatus !== "scanning") reset();
               }}
               disabled={scanStatus === "scanning"}
-              className="h-14 pr-10 text-sm rounded-2xl bg-black/40 border-white/10 focus-visible:ring-primary/50"
+              className="h-14 pr-14 pl-4 text-sm rounded-2xl bg-black/40 border-white/10 focus-visible:ring-primary/50"
             />
           </div>
           <Button
