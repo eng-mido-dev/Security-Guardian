@@ -2,21 +2,21 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useApp } from "@/context/AppContext";
 import { useLang } from "@/context/LangContext";
-import { Shield, Menu, X, LogOut, Globe, ChevronDown, LayoutDashboard } from "lucide-react";
+import { Shield, Menu, X, LogOut, Globe, ChevronDown, LayoutDashboard, AlertTriangle, PlayCircle, Wrench, Info, Home, Link2, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
 const NAV_PRIMARY = [
-  { labelKey: "nav.home", path: "/" },
-  { labelKey: "nav.checkLink", path: "/check-link" },
-  { labelKey: "nav.securityTest", path: "/security-test" },
+  { labelKey: "nav.home", path: "/", icon: Home },
+  { labelKey: "nav.checkLink", path: "/check-link", icon: Link2 },
+  { labelKey: "nav.securityTest", path: "/security-test", icon: ClipboardCheck },
 ];
 
 const NAV_MORE = [
-  { labelKey: "nav.report", path: "/report" },
-  { labelKey: "nav.learn", path: "/learn" },
-  { labelKey: "nav.tools", path: "/tools" },
-  { labelKey: "nav.about", path: "/about" },
+  { labelKey: "nav.report", path: "/report", icon: AlertTriangle, descAr: "أبلغ عن رابط أو حساب مشبوه", descEn: "Report a suspicious link or account" },
+  { labelKey: "nav.learn", path: "/learn", icon: PlayCircle, descAr: "فيديوهات قصيرة في 60 ثانية", descEn: "Short videos in 60 seconds" },
+  { labelKey: "nav.tools", path: "/tools", icon: Wrench, descAr: "أدوات وقوائم فحص الأمان", descEn: "Security tools & checklists" },
+  { labelKey: "nav.about", path: "/about", icon: Info, descAr: "تعرّف على مهمة المنصة", descEn: "Learn about the platform mission" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -97,31 +97,48 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <AnimatePresence>
                   {moreOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                      className={`absolute top-[calc(100%+8px)] w-48 bg-[#111]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-[100] ${isRTL ? "right-0" : "left-0"}`}
+                      exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                      className={`absolute top-[calc(100%+10px)] w-64 bg-[#0f0f0f]/98 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] overflow-hidden z-[100] ${isRTL ? "right-0" : "left-0"}`}
                     >
-                      {/* Top accent line */}
-                      <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-                      <div className="py-1.5">
-                        {NAV_MORE.map((link) => (
-                          <Link
-                            key={link.path}
-                            href={link.path}
-                            className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-all ${
-                              isActive(link.path)
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "text-muted-foreground hover:text-white hover:bg-white/[0.06]"
-                            }`}
-                          >
-                            {isActive(link.path) && <div className="w-1 h-1 rounded-full bg-primary" />}
-                            {t(link.labelKey)}
-                          </Link>
-                        ))}
+                      {/* Gold top accent */}
+                      <div className="h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+                      <div className="p-1.5">
+                        {NAV_MORE.map((link) => {
+                          const Icon = link.icon;
+                          const active = isActive(link.path);
+                          return (
+                            <Link
+                              key={link.path}
+                              href={link.path}
+                              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
+                                active
+                                  ? "bg-primary/10 text-primary"
+                                  : "text-muted-foreground hover:text-primary hover:bg-primary/[0.07]"
+                              }`}
+                            >
+                              <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                                active ? "bg-primary/20" : "bg-white/[0.04] group-hover:bg-primary/15"
+                              }`}>
+                                <Icon className={`w-4 h-4 ${active ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold leading-tight">{t(link.labelKey)}</p>
+                                <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5 truncate">
+                                  {isRTL ? link.descAr : link.descEn}
+                                </p>
+                              </div>
+                              {active && <div className="ms-auto w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                            </Link>
+                          );
+                        })}
                       </div>
-                      <div className="h-px bg-white/5" />
+                      <div className="h-px bg-white/[0.04] mx-1.5" />
+                      <div className="px-3 py-2">
+                        <p className="text-[10px] text-muted-foreground/40 text-center">{isRTL ? "منصة حُراس للأمن الرقمي" : "Horras Digital Security Platform"}</p>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -196,20 +213,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-b border-border bg-[#0D0D0D] sticky top-16 z-40 overflow-hidden"
           >
-            <div className="px-4 py-4 space-y-1">
-              {allNav.map((link) => (
-                <Link
-                  key={link.path}
-                  href={link.path}
-                  className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    isActive(link.path)
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  {t(link.labelKey)}
-                </Link>
-              ))}
+            <div className="px-4 py-4 space-y-0.5">
+              {allNav.map((link) => {
+                const Icon = link.icon;
+                const active = isActive(link.path);
+                return (
+                  <Link
+                    key={link.path}
+                    href={link.path}
+                    className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-primary/[0.07] hover:text-primary"
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                      active ? "bg-primary/20" : "bg-white/[0.04] group-hover:bg-primary/15"
+                    }`}>
+                      <Icon className={`w-4 h-4 ${active ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`} />
+                    </div>
+                    <span>{t(link.labelKey)}</span>
+                    {active && <div className="ms-auto w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                  </Link>
+                );
+              })}
 
               <div className="border-t border-white/5 pt-3 mt-3 flex items-center gap-3">
                 <button
