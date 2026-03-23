@@ -12,14 +12,22 @@ import { Button } from "@/components/ui/button";
 import AdminDashboard from "./AdminDashboard";
 
 export default function Dashboard() {
-  const { user, isAdmin, quizScore, linksChecked, toolsChecked, getSecurityScore, getSecurityLevel } = useApp();
+  const { user, isAdmin, isLoading, quizScore, linksChecked, toolsChecked, getSecurityScore, getSecurityLevel } = useApp();
   const { t, isRTL } = useLang();
   const [, setLocation] = useLocation();
   const ArrowDir = isRTL ? ArrowLeft : ArrowRight;
 
   useEffect(() => {
-    if (!user) setLocation("/login");
-  }, [user, setLocation]);
+    if (!isLoading && !user) setLocation("/login");
+  }, [user, isLoading, setLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!user) return null;
 

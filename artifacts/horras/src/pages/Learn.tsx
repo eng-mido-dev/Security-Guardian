@@ -5,14 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/LangContext";
 import { useApp } from "@/context/AppContext";
 import LoginModal from "@/components/LoginModal";
-
-interface AdminVideo {
-  id: string;
-  title: string;
-  url: string;
-  category: string;
-  duration: string;
-}
+import { api, type ApiVideo } from "@/lib/api";
 
 interface Lesson {
   id: string | number;
@@ -88,14 +81,11 @@ export default function Learn() {
   const { isRTL } = useLang();
   const { user } = useApp();
   const [activeTab, setActiveTab] = useState(0);
-  const [adminVideos, setAdminVideos] = useState<AdminVideo[]>([]);
+  const [adminVideos, setAdminVideos] = useState<ApiVideo[]>([]);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("horras_videos");
-      if (saved) setAdminVideos(JSON.parse(saved));
-    } catch { /* ignore */ }
+    api.videos.list().then(setAdminVideos).catch(() => {});
   }, []);
 
   const allLessons: Lesson[] = adminVideos.map((v) => ({

@@ -40,9 +40,8 @@ export default function Login() {
     if (!validate()) return;
 
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 700));
 
-    const result = validateLogin(email, password);
+    const result = await validateLogin(email, password);
     setIsLoading(false);
 
     if (!result.success) {

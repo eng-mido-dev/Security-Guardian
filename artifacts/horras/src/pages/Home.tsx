@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/LangContext";
+import { api } from "@/lib/api";
 
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -103,20 +104,17 @@ export default function Home() {
   const [videoCards, setVideoCards] = useState<VideoCardData[]>([]);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("horras_videos") || "[]");
-      if (Array.isArray(stored)) {
-        const cards: VideoCardData[] = stored.slice(0, 4).map((v: { title?: string; category?: string; duration?: string; url?: string }) => ({
-          titleAr: v.title || "فيديو",
-          titleEn: v.title || "Video",
-          catAr: v.category || "توعية",
-          catEn: v.category || "Awareness",
-          duration: v.duration || "60s",
-          url: v.url,
-        }));
-        setVideoCards(cards);
-      }
-    } catch { /* ignore */ }
+    api.videos.list().then((videos) => {
+      const cards: VideoCardData[] = videos.slice(0, 4).map((v) => ({
+        titleAr: v.title || "فيديو",
+        titleEn: v.title || "Video",
+        catAr: v.category || "توعية",
+        catEn: v.category || "Awareness",
+        duration: v.duration || "60s",
+        url: v.url,
+      }));
+      setVideoCards(cards);
+    }).catch(() => {});
   }, []);
 
   const stats = [

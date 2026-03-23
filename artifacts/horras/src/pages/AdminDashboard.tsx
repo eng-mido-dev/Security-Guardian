@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useApp } from "@/context/AppContext";
 import { useLang } from "@/context/LangContext";
+import { api, type ApiVideo, type AdminUser } from "@/lib/api";
 import {
-  Shield, Users, FileText, PlayCircle, TrendingUp, Plus, Trash2,
+  Shield, Users, FileText, PlayCircle, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
-  BarChart2, Eye, Database, Play
+  Eye, Database, Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,20 +44,6 @@ function VideoRowThumb({ url }: { url: string }) {
   );
 }
 
-interface Video {
-  id: string;
-  title: string;
-  url: string;
-  category: string;
-  duration: string;
-}
-
-const DEFAULT_VIDEOS: Video[] = [
-  { id: "1", title: "What to Do If Blackmailed? / ماذا تفعل إذا تعرضت للابتزاز؟", url: "", category: "الاحتيال", duration: "90s" },
-  { id: "2", title: "Importance of 2FA / أهمية التحقق الثنائي", url: "", category: "كلمات المرور", duration: "60s" },
-  { id: "3", title: "How to Spot a Phishing Link? / كيف تكتشف الرابط الاحتيالي؟", url: "", category: "الروابط", duration: "60s" },
-];
-
 const MOCK_REPORTS = [
   { id: "R-001", type: "phishing", url: "http://fake-bank.xyz/login", date: "2026-03-20", status: "pending" },
   { id: "R-002", type: "financial", url: "https://invest-now-profit.ml", date: "2026-03-21", status: "reviewed" },
@@ -66,51 +52,61 @@ const MOCK_REPORTS = [
 ];
 
 export default function AdminDashboard() {
-  const { getAllUsers } = useApp();
   const { isRTL } = useLang();
   const { toast } = useToast();
 
-  const [videos, setVideos] = useState<Video[]>(() => {
-    try { return JSON.parse(localStorage.getItem("horras_videos") || "[]") || DEFAULT_VIDEOS; } catch { return DEFAULT_VIDEOS; }
-  });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Partial<Video>>({});
+  const [videos, setVideos] = useState<ApiVideo[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [videosLoading, setVideosLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editData, setEditData] = useState<Partial<ApiVideo>>({});
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [newVideo, setNewVideo] = useState<Partial<Video>>({ title: "", url: "", category: "", duration: "" });
+  const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", url: "", category: "", duration: "" });
   const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users">("videos");
 
-  const users = getAllUsers();
+  useEffect(() => {
+    api.videos.list().then(setVideos).finally(() => setVideosLoading(false));
+    api.admin.users().then(setUsers).catch(() => {});
+  }, []);
 
-  const saveVideos = (vids: Video[]) => {
-    localStorage.setItem("horras_videos", JSON.stringify(vids));
-    setVideos(vids);
+  const saveEdit = async (id: number) => {
+    try {
+      const updated = await api.videos.update(id, editData);
+      setVideos((vs) => vs.map((v) => (v.id === id ? updated : v)));
+      setEditingId(null);
+      setEditData({});
+      toast({ title: isRTL ? "تم حفظ التغييرات" : "Changes saved" });
+    } catch {
+      toast({ title: isRTL ? "فشل الحفظ" : "Save failed", variant: "destructive" });
+    }
   };
 
-  const saveEdit = (id: string) => {
-    saveVideos(videos.map((v) => (v.id === id ? { ...v, ...editData } : v)));
-    setEditingId(null);
-    setEditData({});
-    toast({ title: isRTL ? "تم حفظ التغييرات" : "Changes saved" });
+  const deleteVideo = async (id: number) => {
+    try {
+      await api.videos.delete(id);
+      setVideos((vs) => vs.filter((v) => v.id !== id));
+      toast({ title: isRTL ? "تم حذف الفيديو" : "Video deleted" });
+    } catch {
+      toast({ title: isRTL ? "فشل الحذف" : "Delete failed", variant: "destructive" });
+    }
   };
 
-  const deleteVideo = (id: string) => {
-    saveVideos(videos.filter((v) => v.id !== id));
-    toast({ title: isRTL ? "تم حذف الفيديو" : "Video deleted" });
-  };
-
-  const addVideo = () => {
+  const addVideo = async () => {
     if (!newVideo.title) return;
-    const video: Video = {
-      id: Date.now().toString(),
-      title: newVideo.title || "",
-      url: newVideo.url || "",
-      category: newVideo.category || "",
-      duration: newVideo.duration || "60s",
-    };
-    saveVideos([...videos, video]);
-    setNewVideo({ title: "", url: "", category: "", duration: "" });
-    setIsAddingNew(false);
-    toast({ title: isRTL ? "تم إضافة الفيديو" : "Video added" });
+    try {
+      const video = await api.videos.create({
+        title: newVideo.title,
+        url: newVideo.url || "",
+        category: newVideo.category || "",
+        duration: newVideo.duration || "60s",
+      });
+      setVideos((vs) => [...vs, video]);
+      setNewVideo({ title: "", url: "", category: "", duration: "" });
+      setIsAddingNew(false);
+      toast({ title: isRTL ? "تم إضافة الفيديو" : "Video added" });
+    } catch {
+      toast({ title: isRTL ? "فشلت الإضافة" : "Add failed", variant: "destructive" });
+    }
   };
 
   const stats = [
@@ -128,7 +124,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#070709]">
-      {/* Admin Header */}
       <div className="border-b border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -157,7 +152,6 @@ export default function AdminDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {stats.map((stat, i) => (
             <motion.div
@@ -174,7 +168,6 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Tabs */}
         <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5 mb-6 w-fit">
           {tabs.map((tab) => (
             <button
@@ -192,7 +185,6 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Video Management Tab */}
         {activeTab === "videos" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="flex items-center justify-between mb-4">
@@ -240,71 +232,82 @@ export default function AdminDashboard() {
               )}
             </AnimatePresence>
 
-            <div className="space-y-2">
-              {videos.map((video) => (
-                <motion.div key={video.id} layout className="bg-[#0D0D0F] border border-white/5 rounded-2xl overflow-hidden">
-                  {editingId === video.id ? (
-                    <div className="p-5 space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">{isRTL ? "العنوان" : "Title"}</Label>
-                          <Input value={editData.title ?? video.title} onChange={(e) => setEditData((p) => ({ ...p, title: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
-                          <div className="relative">
-                            <Youtube className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none z-10" />
-                            <Input value={editData.url ?? video.url} onChange={(e) => setEditData((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pr-12 pl-3 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
+            {videosLoading ? (
+              <div className="flex justify-center py-10">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {videos.length === 0 && !isAddingNew && (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <PlayCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p>{isRTL ? "لا توجد فيديوهات. أضف أول فيديو!" : "No videos yet. Add your first video!"}</p>
+                  </div>
+                )}
+                {videos.map((video) => (
+                  <motion.div key={video.id} layout className="bg-[#0D0D0F] border border-white/5 rounded-2xl overflow-hidden">
+                    {editingId === video.id ? (
+                      <div className="p-5 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">{isRTL ? "العنوان" : "Title"}</Label>
+                            <Input value={editData.title ?? video.title} onChange={(e) => setEditData((p) => ({ ...p, title: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
+                            <div className="relative">
+                              <Youtube className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none z-10" />
+                              <Input value={editData.url ?? video.url} onChange={(e) => setEditData((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pr-12 pl-3 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">{isRTL ? "التصنيف" : "Category"}</Label>
+                            <Input value={editData.category ?? video.category} onChange={(e) => setEditData((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">{isRTL ? "المدة" : "Duration"}</Label>
+                            <Input value={editData.duration ?? video.duration} onChange={(e) => setEditData((p) => ({ ...p, duration: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
                           </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">{isRTL ? "التصنيف" : "Category"}</Label>
-                          <Input value={editData.category ?? video.category} onChange={(e) => setEditData((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">{isRTL ? "المدة" : "Duration"}</Label>
-                          <Input value={editData.duration ?? video.duration} onChange={(e) => setEditData((p) => ({ ...p, duration: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                        <div className="flex gap-3 justify-end">
+                          <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setEditingId(null); setEditData({}); }}><X className="w-4 h-4" /></Button>
+                          <Button size="sm" className="rounded-xl gap-1.5" onClick={() => saveEdit(video.id)}><Save className="w-4 h-4" /> {isRTL ? "حفظ" : "Save"}</Button>
                         </div>
                       </div>
-                      <div className="flex gap-3 justify-end">
-                        <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setEditingId(null); setEditData({}); }}><X className="w-4 h-4" /></Button>
-                        <Button size="sm" className="rounded-xl gap-1.5" onClick={() => saveEdit(video.id)}><Save className="w-4 h-4" /> {isRTL ? "حفظ" : "Save"}</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-4 px-4 py-3">
-                      {video.url ? (
-                        <VideoRowThumb url={video.url} />
-                      ) : (
-                        <div className="w-16 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                          <PlayCircle className="w-4 h-4 text-primary" />
+                    ) : (
+                      <div className="flex items-center gap-4 px-4 py-3">
+                        {video.url ? (
+                          <VideoRowThumb url={video.url} />
+                        ) : (
+                          <div className="w-16 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                            <PlayCircle className="w-4 h-4 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex-grow min-w-0">
+                          <p className="font-medium text-sm">{video.title}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            {video.category && <span className="text-xs bg-white/5 text-muted-foreground px-2 py-0.5 rounded-full">{video.category}</span>}
+                            {video.duration && <span className="text-xs text-muted-foreground/60">⏱ {video.duration}</span>}
+                            {video.url && <span className="text-xs text-emerald-400/70 flex items-center gap-1"><Youtube className="w-3 h-3" />{isRTL ? "رابط مرتبط" : "Link attached"}</span>}
+                          </div>
                         </div>
-                      )}
-                      <div className="flex-grow min-w-0">
-                        <p className="font-medium text-sm">{video.title}</p>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {video.category && <span className="text-xs bg-white/5 text-muted-foreground px-2 py-0.5 rounded-full">{video.category}</span>}
-                          {video.duration && <span className="text-xs text-muted-foreground/60">⏱ {video.duration}</span>}
-                          {video.url && <span className="text-xs text-emerald-400/70 flex items-center gap-1"><Youtube className="w-3 h-3" />{isRTL ? "رابط مرتبط" : "Link attached"}</span>}
+                        <div className="flex gap-1.5 shrink-0">
+                          <Button size="icon" variant="ghost" className="w-8 h-8 rounded-lg" onClick={() => { setEditingId(video.id); setEditData({}); setIsAddingNew(false); }}>
+                            <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="w-8 h-8 rounded-lg hover:bg-red-500/10" onClick={() => deleteVideo(video.id)}>
+                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-1.5 shrink-0">
-                        <Button size="icon" variant="ghost" className="w-8 h-8 rounded-lg" onClick={() => { setEditingId(video.id); setEditData({}); setIsAddingNew(false); }}>
-                          <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="w-8 h-8 rounded-lg hover:bg-red-500/10" onClick={() => deleteVideo(video.id)}>
-                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
 
-        {/* Reports Tab */}
         {activeTab === "reports" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <h2 className="text-lg font-bold mb-4">{isRTL ? "بلاغات المستخدمين" : "User Reports"}</h2>
@@ -343,7 +346,6 @@ export default function AdminDashboard() {
           </motion.div>
         )}
 
-        {/* Users Tab */}
         {activeTab === "users" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <h2 className="text-lg font-bold mb-4">{isRTL ? "المستخدمون المسجلون" : "Registered Users"}</h2>
@@ -362,8 +364,8 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {users.map((u, i) => (
-                      <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                      {users.map((u) => (
+                      <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">

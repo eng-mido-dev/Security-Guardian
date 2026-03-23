@@ -63,9 +63,8 @@ export default function Signup() {
     if (!validate()) return;
 
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
 
-    const result = register(name, email, password);
+    const result = await register(name, email, password);
     setIsLoading(false);
 
     if (!result.success) {

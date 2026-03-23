@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "postgresql-16"]
 
 [[artifacts]]
 id = "artifacts/api-server"
@@ -24,3 +24,11 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+JWT_SECRET = "7472a56ef928f3184b1f0c2a32e4d542560fd200e5c93778ea473810aaa296ca0ad54b74ad843b1344251227b8551ffd"
+
+[nix]
+channel = "stable-25_05"

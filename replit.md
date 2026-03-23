@@ -92,17 +92,39 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/api-server` (`@workspace/api-server`) - Extended
+
+Now serves as the full backend for Horras. Routes added:
+- `POST /api/auth/register` — create account, returns JWT + user + activity
+- `POST /api/auth/login` — login, returns JWT + user + activity
+- `GET /api/auth/me` — restore session from JWT (requires Bearer token)
+- `GET /api/videos` — public list of all learning videos
+- `POST /api/videos` — admin only: add video
+- `PUT /api/videos/:id` — admin only: edit video
+- `DELETE /api/videos/:id` — admin only: delete video
+- `GET /api/activity` — get current user activity (auth required)
+- `PATCH /api/activity` — update current user activity (auth required)
+- `GET /api/admin/users` — admin only: list all non-admin users
+
+Auth: JWT (HS256, 30-day expiry). Token stored in `localStorage["horras_token"]` on frontend.
+Admin seeded on startup: email=admin@h.com, password=Admin (bcrypt hashed).
+Packages added: `bcryptjs`, `jose`.
+
 ### `artifacts/horras` (`@workspace/horras`)
 
-Arabic cybersecurity awareness platform "حراس" (Horras). Frontend-only React + Vite + Tailwind app.
+Arabic cybersecurity awareness platform "حراس" (Horras). React + Vite + Tailwind app.
 
 - Served at path `/` (root)
 - Full RTL Arabic layout with Tajawal font, dark theme (#0A0A0A), gold accents (#FFB800)
 - Pages: Home, CheckLink, SecurityTest, Report, Learn, Tools, About, Dashboard, Login, Signup
-- Global AppContext: tracks user auth (mock), quizScore, linksChecked, profileSetup, toolsChecked
+- **Data persistence**: PostgreSQL via API server (migrated from localStorage)
+- `src/lib/api.ts` — typed API client with JWT token management
+- Global AppContext: async auth (validateLogin/register), activity synced to DB
 - Security Score Algorithm: quiz(30) + links(30) + profile(20) + tools(20) = max 100
 - Security levels: خبير (Expert ≥80), متوسط (Intermediate 50-79), في خطر (At Risk <50)
-- Dependencies: framer-motion, canvas-confetti, @types/canvas-confetti, lucide-react
+- Vite proxy: `/api` → `http://localhost:8080` in development
+- Admin login credentials: admin@h.com / Admin (stored in DB, not hardcoded frontend)
+- Dependencies: framer-motion, canvas-confetti, lucide-react
 
 ### `scripts` (`@workspace/scripts`)
 
