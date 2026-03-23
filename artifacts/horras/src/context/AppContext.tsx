@@ -3,6 +3,13 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 export interface User {
   name: string;
   email: string;
+  role: "admin" | "user";
+}
+
+export interface StoredUser {
+  name: string;
+  email: string;
+  password: string;
 }
 
 export interface AppState {
@@ -13,7 +20,35 @@ export interface AppState {
   toolsChecked: string[];
 }
 
+const ADMIN_EMAIL = "admin@h.com";
+const ADMIN_PASSWORD = "Admin";
+
+const getStoredUsers = (): StoredUser[] => {
+  try {
+    return JSON.parse(localStorage.getItem("horras_users") || "[]");
+  } catch {
+    return [];
+  }
+};
+
+const saveStoredUsers = (users: StoredUser[]) => {
+  localStorage.setItem("horras_users", JSON.stringify(users));
+};
+
+interface LoginResult {
+  success: boolean;
+  error?: string;
+}
+
+interface RegisterResult {
+  success: boolean;
+  error?: string;
+}
+
 interface AppContextType extends AppState {
+  isAdmin: boolean;
+  validateLogin: (email: string, password: string) => LoginResult;
+  register: (name: string, email: string, password: string) => RegisterResult;
   login: (user: User) => void;
   logout: () => void;
   setQuizScore: (score: number) => void;
@@ -21,6 +56,7 @@ interface AppContextType extends AppState {
   toggleToolChecked: (toolId: string) => void;
   getSecurityScore: () => number;
   getSecurityLevel: () => { label: string; color: string; badgeColor: string };
+  getAllUsers: () => StoredUser[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -32,7 +68,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         return JSON.parse(saved);
       } catch {
-        // invalid json
+        /* ignore */
       }
     }
     return {
@@ -48,12 +84,78 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("horras_state", JSON.stringify(state));
   }, [state]);
 
+  const isAdmin = state.user?.role === "admin";
+
+  const validateLogin = (email: string, password: string): LoginResult => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Admin check
+    if (normalizedEmail === ADMIN_EMAIL.toLowerCase()) {
+      if (password !== ADMIN_PASSWORD) {
+        return { success: false, error: "wrong_password" };
+      }
+      setState((prev) => ({
+        ...prev,
+        user: { name: "Admin", email: ADMIN_EMAIL, role: "admin" },
+        profileSetup: true,
+      }));
+      return { success: true };
+    }
+
+    // Regular user check
+    const users = getStoredUsers();
+    const found = users.find((u) => u.email.toLowerCase() === normalizedEmail);
+    if (!found) {
+      return { success: false, error: "user_not_found" };
+    }
+    if (found.password !== password) {
+      return { success: false, error: "wrong_password" };
+    }
+
+    setState((prev) => ({
+      ...prev,
+      user: { name: found.name, email: found.email, role: "user" },
+      profileSetup: true,
+    }));
+    return { success: true };
+  };
+
+  const register = (name: string, email: string, password: string): RegisterResult => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (normalizedEmail === ADMIN_EMAIL.toLowerCase()) {
+      return { success: false, error: "email_taken" };
+    }
+
+    const users = getStoredUsers();
+    if (users.find((u) => u.email.toLowerCase() === normalizedEmail)) {
+      return { success: false, error: "email_taken" };
+    }
+
+    const newUser: StoredUser = { name: name.trim(), email: normalizedEmail, password };
+    saveStoredUsers([...users, newUser]);
+
+    setState((prev) => ({
+      ...prev,
+      user: { name: name.trim(), email: normalizedEmail, role: "user" },
+      profileSetup: true,
+    }));
+    return { success: true };
+  };
+
   const login = (user: User) => {
     setState((prev) => ({ ...prev, user, profileSetup: true }));
   };
 
   const logout = () => {
-    setState((prev) => ({ ...prev, user: null }));
+    setState((prev) => ({
+      ...prev,
+      user: null,
+      quizScore: null,
+      linksChecked: 0,
+      profileSetup: false,
+      toolsChecked: [],
+    }));
   };
 
   const setQuizScore = (score: number) => {
@@ -76,11 +178,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const getSecurityScore = () => {
     let score = 0;
-    if (state.quizScore !== null) score += 30; // completed quiz: +30
-    if (state.linksChecked > 0) score += 30;   // checked at least one link: +30
-    if (state.profileSetup) score += 20;        // profile setup / signup: +20
-    if (state.toolsChecked.length >= 8) score += 20; // completed full security checklist: +20
-    
+    if (state.quizScore !== null) score += 30;
+    if (state.linksChecked > 0) score += 30;
+    if (state.profileSetup) score += 20;
+    if (state.toolsChecked.length >= 8) score += 20;
     return Math.min(100, score);
   };
 
@@ -91,10 +192,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { label: "في خطر", color: "text-destructive", badgeColor: "bg-destructive/20 text-destructive border-destructive/30" };
   };
 
+  const getAllUsers = (): StoredUser[] => getStoredUsers();
+
   return (
     <AppContext.Provider
       value={{
         ...state,
+        isAdmin,
+        validateLogin,
+        register,
         login,
         logout,
         setQuizScore,
@@ -102,6 +208,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleToolChecked,
         getSecurityScore,
         getSecurityLevel,
+        getAllUsers,
       }}
     >
       {children}

@@ -20,27 +20,17 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useApp();
-  const { t } = useLang();
+  const { validateLogin } = useApp();
+  const { t, isRTL } = useLang();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!email.trim()) {
-      newErrors.email = t("login.emailRequired");
-    } else if (!emailRegex.test(email)) {
-      newErrors.email = t("login.emailInvalid");
-    }
-
-    if (!password) {
-      newErrors.password = t("login.passwordRequired");
-    } else if (password.length < 6) {
-      newErrors.password = t("login.passwordMin");
-    }
-
+    if (!email.trim()) newErrors.email = t("login.emailRequired");
+    else if (!emailRegex.test(email)) newErrors.email = t("login.emailInvalid");
+    if (!password) newErrors.password = t("login.passwordRequired");
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -50,19 +40,49 @@ export default function Login() {
     if (!validate()) return;
 
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 700));
 
-    const name = email.split("@")[0];
-    login({ name, email });
-    toast({ title: t("login.success") });
+    const result = validateLogin(email, password);
+    setIsLoading(false);
+
+    if (!result.success) {
+      if (result.error === "user_not_found") {
+        toast({
+          title: isRTL ? "المستخدم غير موجود" : "User Not Found",
+          description: isRTL
+            ? "لا يوجد حساب مرتبط بهذا البريد الإلكتروني. يرجى التسجيل أولاً."
+            : "No account linked to this email. Please sign up first.",
+          variant: "destructive",
+        });
+        setErrors({ email: isRTL ? "بريد إلكتروني غير مسجل" : "Email not registered" });
+      } else if (result.error === "wrong_password") {
+        toast({
+          title: isRTL ? "كلمة مرور خاطئة" : "Wrong Password",
+          description: isRTL
+            ? "كلمة المرور التي أدخلتها غير صحيحة. يرجى المحاولة مجدداً."
+            : "The password you entered is incorrect. Please try again.",
+          variant: "destructive",
+        });
+        setErrors({ password: isRTL ? "كلمة المرور غير صحيحة" : "Incorrect password" });
+      } else {
+        toast({
+          title: isRTL ? "خطأ في تسجيل الدخول" : "Login Error",
+          description: isRTL ? "حدث خطأ غير متوقع. يرجى المحاولة مجدداً." : "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    toast({ title: isRTL ? "تم تسجيل الدخول بنجاح 🎉" : "Signed in successfully 🎉" });
     setLocation("/dashboard");
   };
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
         className="w-full max-w-md glass-card rounded-[2.5rem] p-10 border-white/10"
       >
         <div className="text-center mb-8">
@@ -74,7 +94,6 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5" noValidate>
-          {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email">{t("login.email")}</Label>
             <div className="relative">
@@ -90,14 +109,13 @@ export default function Login() {
             </div>
             <AnimatePresence>
               {errors.email && (
-                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-destructive text-xs mt-1">
+                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-destructive text-xs">
                   {errors.email}
                 </motion.p>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">{t("login.password")}</Label>
@@ -122,7 +140,7 @@ export default function Login() {
             </div>
             <AnimatePresence>
               {errors.password && (
-                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-destructive text-xs mt-1">
+                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-destructive text-xs">
                   {errors.password}
                 </motion.p>
               )}
@@ -132,7 +150,7 @@ export default function Login() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 text-base font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
+            className="w-full h-12 text-base font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 mt-2"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -148,6 +166,13 @@ export default function Login() {
           <Link href="/signup" className="text-primary font-bold hover:underline">
             {t("login.signupLink")}
           </Link>
+        </div>
+
+        {/* Hint for admin */}
+        <div className="mt-4 text-center">
+          <p className="text-xs text-muted-foreground/40">
+            {isRTL ? "حساب المدير: admin@h.com / Admin" : "Admin: admin@h.com / Admin"}
+          </p>
         </div>
       </motion.div>
     </div>
