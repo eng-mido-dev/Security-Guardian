@@ -130,6 +130,7 @@ export default function Signup() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="off"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
                 className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.email ? "border-destructive" : "border-white/10"}`}
@@ -153,6 +154,7 @@ export default function Signup() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
                 className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.password ? "border-destructive" : "border-white/10"}`}

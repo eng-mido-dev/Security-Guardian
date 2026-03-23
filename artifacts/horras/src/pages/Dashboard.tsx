@@ -97,6 +97,17 @@ export default function Dashboard() {
               <p className="font-black">{toolsChecked.length}/8</p>
             </div>
           </div>
+          {user.joinDate && (
+            <div className="w-full bg-black/20 rounded-xl px-3 py-2.5 border border-white/5">
+              <p className="text-muted-foreground text-xs mb-0.5 flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {t("dashboard.joinDate")}
+              </p>
+              <p className="font-bold text-xs">
+                {new Date(user.joinDate).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { year: "numeric", month: "long", day: "numeric" })}
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* Score card */}

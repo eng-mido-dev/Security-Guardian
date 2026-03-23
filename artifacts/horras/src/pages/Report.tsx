@@ -16,9 +16,27 @@ interface UploadedFile {
   previewUrl: string;
 }
 
+const FRAUD_TYPES_AR = [
+  { value: "phishing", label: "موقع تصيد (فيشينج)" },
+  { value: "identity", label: "انتحال شخصية" },
+  { value: "financial", label: "احتيال مالي / استثماري" },
+  { value: "fake_link", label: "رابط مزيف / ضار" },
+  { value: "fake_message", label: "رسالة / إيميل مزيف" },
+  { value: "other", label: "أخرى" },
+];
+
+const FRAUD_TYPES_EN = [
+  { value: "phishing", label: "Phishing / Fake Website" },
+  { value: "identity", label: "Identity Theft" },
+  { value: "financial", label: "Financial / Investment Fraud" },
+  { value: "fake_link", label: "Fake / Malicious Link" },
+  { value: "fake_message", label: "Fake Message / Email" },
+  { value: "other", label: "Other" },
+];
+
 export default function Report() {
   const { toast } = useToast();
-  const { t } = useLang();
+  const { t, isRTL } = useLang();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -133,19 +151,29 @@ export default function Report() {
             <Label htmlFor="type" className="text-base font-bold">
               {t("report.fraudType")} <span className="text-destructive">*</span>
             </Label>
-            <select
-              id="type"
-              value={fraudType}
-              onChange={(e) => { setFraudType(e.target.value); setFraudTypeError(false); }}
-              className={`w-full flex h-12 items-center justify-between rounded-xl border bg-black/40 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${fraudTypeError ? "border-destructive" : "border-white/10"}`}
-            >
-              <option value="" disabled>اختر نوع الاحتيال...</option>
-              <option value="phishing">موقع تصيد (فيشينج)</option>
-              <option value="financial">احتيال مالي / استثماري</option>
-              <option value="identity">انتحال شخصية</option>
-              <option value="fake_message">رسالة / إيميل مزيف</option>
-              <option value="other">أخرى</option>
-            </select>
+            <div className="relative">
+              <select
+                id="type"
+                value={fraudType}
+                onChange={(e) => { setFraudType(e.target.value); setFraudTypeError(false); }}
+                className={`w-full h-12 rounded-xl border bg-[#111] px-4 py-2 text-sm appearance-none cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary/60 focus:ring-offset-0 text-white ${fraudTypeError ? "border-destructive" : "border-white/10 hover:border-white/20"}`}
+                style={{ direction: isRTL ? "rtl" : "ltr" }}
+              >
+                <option value="" disabled style={{ color: "#666" }}>
+                  {isRTL ? "اختر نوع الاحتيال..." : "Select fraud type..."}
+                </option>
+                {(isRTL ? FRAUD_TYPES_AR : FRAUD_TYPES_EN).map((opt) => (
+                  <option key={opt.value} value={opt.value} style={{ background: "#111", color: "white" }}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <div className={`absolute top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground ${isRTL ? "left-3" : "right-3"}`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+            </div>
             <AnimatePresence>
               {fraudTypeError && (
                 <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-destructive text-xs">

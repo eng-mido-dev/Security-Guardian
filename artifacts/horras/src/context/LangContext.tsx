@@ -134,6 +134,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "dashboard.addVideo": "إضافة فيديو",
     "dashboard.removeVideo": "حذف",
     "dashboard.editVideo": "تعديل",
+    "dashboard.joinDate": "تاريخ الانضمام",
     "dashboard.joinedPlatform": "انضممت إلى منصة حُراس",
     "dashboard.onRegistration": "عند التسجيل",
     "dashboard.today": "اليوم",
@@ -303,6 +304,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "dashboard.addVideo": "Add Video",
     "dashboard.removeVideo": "Remove",
     "dashboard.editVideo": "Edit",
+    "dashboard.joinDate": "Join Date",
     "dashboard.joinedPlatform": "Joined the Horras platform",
     "dashboard.onRegistration": "On registration",
     "dashboard.today": "Today",
@@ -361,6 +363,7 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("horras_lang", lang);
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    document.title = lang === "ar" ? "حُراس - منصتكم للأمن الرقمي" : "Horras - Your Digital Security Platform";
     if (lang === "en") {
       document.body.classList.add("lang-en");
       document.body.classList.remove("lang-ar");

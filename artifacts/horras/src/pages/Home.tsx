@@ -1,16 +1,131 @@
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   ShieldCheck, Search, ClipboardCheck, AlertTriangle, PlayCircle,
-  Smartphone, ChevronLeft, ChevronRight, Users, Target, FileWarning, Link2
+  Smartphone, ChevronLeft, ChevronRight, Users, Target, FileWarning, Link2, Play, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/LangContext";
+
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /youtube\.com\/watch\?v=([^&]+)/,
+    /youtu\.be\/([^?]+)/,
+    /youtube\.com\/embed\/([^?]+)/,
+    /youtube\.com\/shorts\/([^?]+)/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+interface VideoCardData {
+  titleAr: string;
+  titleEn: string;
+  catAr: string;
+  catEn: string;
+  duration: string;
+  url?: string;
+}
+
+function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: boolean; onClick: () => void }) {
+  const [quality, setQuality] = useState<"maxresdefault" | "hqdefault" | "error">("maxresdefault");
+  const videoId = card.url ? extractYouTubeId(card.url) : null;
+  const thumbUrl = videoId && quality !== "error"
+    ? `https://img.youtube.com/vi/${videoId}/${quality}.jpg`
+    : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="group cursor-pointer"
+      onClick={onClick}
+    >
+      {/* Thumbnail */}
+      <div className="relative aspect-video bg-gradient-to-br from-white/5 to-black/40 border border-white/10 rounded-2xl overflow-hidden mb-3 group-hover:border-primary/40 transition-colors">
+        {thumbUrl ? (
+          <img
+            src={thumbUrl}
+            alt={isRTL ? card.titleAr : card.titleEn}
+            className="w-full h-full object-cover"
+            onError={() => {
+              if (quality === "maxresdefault") setQuality("hqdefault");
+              else setQuality("error");
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-black/50" />
+        )}
+
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+        {/* Play button */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/40 transform group-hover:scale-110 transition-transform">
+            <Play className="w-5 h-5 ms-0.5" fill="currentColor" />
+          </div>
+        </div>
+
+        {/* Duration badge */}
+        <div className="absolute bottom-3 end-3 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded-lg text-xs font-medium text-white/90">
+          <Clock className="w-3 h-3" />
+          {card.duration}
+        </div>
+
+        {/* Category badge */}
+        <div className="absolute top-3 start-3">
+          <span className="text-xs px-2 py-0.5 rounded-full border font-medium backdrop-blur-sm bg-white/10 text-white/80 border-white/10">
+            {isRTL ? card.catAr : card.catEn}
+          </span>
+        </div>
+      </div>
+
+      <h3 className="font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">
+        {isRTL ? card.titleAr : card.titleEn}
+      </h3>
+    </motion.div>
+  );
+}
+
+const STATIC_PREVIEWS: VideoCardData[] = [
+  { titleAr: "كيف تكتشف الرابط الاحتيالي؟", titleEn: "How to Spot a Phishing Link?", catAr: "الروابط", catEn: "Links", duration: "60s" },
+  { titleAr: "أهمية التحقق الثنائي", titleEn: "Importance of Two-Factor Auth", catAr: "كلمات المرور", catEn: "Passwords", duration: "60s" },
+  { titleAr: "ماذا تفعل إذا تعرضت للابتزاز؟", titleEn: "What to Do If Blackmailed?", catAr: "الاحتيال", catEn: "Scams", duration: "90s" },
+  { titleAr: "تأمين حساب واتساب", titleEn: "Secure Your WhatsApp", catAr: "الخصوصية", catEn: "Privacy", duration: "60s" },
+];
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { t, isRTL } = useLang();
   const ChevronDir = isRTL ? ChevronLeft : ChevronRight;
+
+  const [videoCards, setVideoCards] = useState<VideoCardData[]>(STATIC_PREVIEWS);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("horras_videos") || "[]");
+      if (Array.isArray(stored) && stored.length > 0) {
+        const cards: VideoCardData[] = stored.slice(0, 4).map((v: { title?: string; titleAr?: string; description?: string; category?: string; duration?: string; url?: string }) => ({
+          titleAr: v.titleAr || v.title || "فيديو",
+          titleEn: v.title || v.titleAr || "Video",
+          catAr: v.category || "توعية",
+          catEn: v.category || "Awareness",
+          duration: v.duration || "60s",
+          url: v.url,
+        }));
+        setVideoCards(cards);
+      }
+    } catch {
+      /* use static fallback */
+    }
+  }, []);
 
   const stats = [
     { icon: <Users className="w-5 h-5" />, value: "+5,200", labelKey: "stats.activeUsers" },
@@ -169,34 +284,17 @@ export default function Home() {
               {t("learn.viewMore")}
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              { titleAr: "ماذا تفعل إذا تعرضت للابتزاز؟", titleEn: "What to Do If You're Blackmailed?", catAr: "الاحتيال", catEn: "Scams", duration: "90s" },
-              { titleAr: "أهمية التحقق الثنائي", titleEn: "Importance of Two-Factor Auth", catAr: "كلمات المرور", catEn: "Passwords", duration: "60s" },
-              { titleAr: "كيف تكتشف الرابط الاحتيالي؟", titleEn: "How to Spot a Phishing Link?", catAr: "الروابط", catEn: "Links", duration: "60s" },
-            ].map((v, i) => (
-              <motion.div
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            {videoCards.map((card, i) => (
+              <HomeVideoCard
                 key={i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="glass-card rounded-2xl overflow-hidden cursor-pointer group hover:bg-white/[0.04] transition-all"
-                onClick={() => setLocation("/learn")}
-              >
-                <div className="relative bg-gradient-to-br from-white/5 to-white/[0.01] h-40 flex items-center justify-center">
-                  <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-primary/30">
-                    <PlayCircle className="w-7 h-7 text-primary-foreground fill-primary-foreground" />
-                  </div>
-                  <div className="absolute bottom-3 end-3 bg-black/60 text-xs px-2 py-0.5 rounded-lg text-muted-foreground">⏱ {v.duration}</div>
-                  <div className="absolute top-3 start-3 bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-lg border border-primary/20 font-medium">
-                    {isRTL ? v.catAr : v.catEn}
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-sm leading-snug">{isRTL ? v.titleAr : v.titleEn}</h3>
-                </div>
-              </motion.div>
+                card={card}
+                isRTL={isRTL}
+                onClick={() => {
+                  if (card.url) window.open(card.url, "_blank", "noopener,noreferrer");
+                  else setLocation("/learn");
+                }}
+              />
             ))}
           </div>
           <div className="mt-6 text-center md:hidden">

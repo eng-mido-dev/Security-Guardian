@@ -4,12 +4,14 @@ export interface User {
   name: string;
   email: string;
   role: "admin" | "user";
+  joinDate?: string;
 }
 
 export interface StoredUser {
   name: string;
   email: string;
   password: string;
+  joinDate: string;
 }
 
 export interface AppState {
@@ -89,32 +91,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const validateLogin = (email: string, password: string): LoginResult => {
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Admin check
     if (normalizedEmail === ADMIN_EMAIL.toLowerCase()) {
       if (password !== ADMIN_PASSWORD) {
         return { success: false, error: "wrong_password" };
       }
       setState((prev) => ({
         ...prev,
-        user: { name: "Admin", email: ADMIN_EMAIL, role: "admin" },
+        user: { name: "Admin", email: ADMIN_EMAIL, role: "admin", joinDate: new Date().toISOString() },
         profileSetup: true,
       }));
       return { success: true };
     }
 
-    // Regular user check
     const users = getStoredUsers();
     const found = users.find((u) => u.email.toLowerCase() === normalizedEmail);
-    if (!found) {
-      return { success: false, error: "user_not_found" };
-    }
-    if (found.password !== password) {
-      return { success: false, error: "wrong_password" };
-    }
+    if (!found) return { success: false, error: "user_not_found" };
+    if (found.password !== password) return { success: false, error: "wrong_password" };
 
     setState((prev) => ({
       ...prev,
-      user: { name: found.name, email: found.email, role: "user" },
+      user: { name: found.name, email: found.email, role: "user", joinDate: found.joinDate },
       profileSetup: true,
     }));
     return { success: true };
@@ -132,12 +128,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: "email_taken" };
     }
 
-    const newUser: StoredUser = { name: name.trim(), email: normalizedEmail, password };
+    const joinDate = new Date().toISOString();
+    const newUser: StoredUser = { name: name.trim(), email: normalizedEmail, password, joinDate };
     saveStoredUsers([...users, newUser]);
 
     setState((prev) => ({
       ...prev,
-      user: { name: name.trim(), email: normalizedEmail, role: "user" },
+      user: { name: name.trim(), email: normalizedEmail, role: "user", joinDate },
       profileSetup: true,
     }));
     return { success: true };
