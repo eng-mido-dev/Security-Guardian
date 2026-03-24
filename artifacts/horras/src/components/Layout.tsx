@@ -21,7 +21,7 @@ const NAV_MORE = [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, logout, isLoading } = useApp();
+  const { user, isAdmin, logout, isLoading, isVideoOpen } = useApp();
   const { t, lang, toggleLang, isRTL } = useLang();
   const [location, setLocation] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -85,7 +85,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Admin badge strip */}
-      {isAdmin && (
+      {isAdmin && !isVideoOpen && (
         <div className="bg-primary text-primary-foreground text-center text-xs font-bold py-1.5 tracking-widest uppercase">
           {isRTL ? "وضع المدير — Admin Mode" : "Admin Mode — وضع المدير"}
         </div>
@@ -93,7 +93,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* ── Global Notification Banner ── */}
       <AnimatePresence>
-        {user && !isAdmin && currentNotif && (
+        {!isVideoOpen && user && !isAdmin && currentNotif && (
           <motion.div
             key={currentNotif.id}
             initial={{ opacity: 0, height: 0 }}
@@ -147,8 +147,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* Navbar */}
-      <header className="sticky top-0 z-50 w-full bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/[0.06]">
+      {/* Navbar — hidden from DOM while a video modal is open */}
+      {!isVideoOpen && <header className="sticky top-0 z-50 w-full bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
 
@@ -304,11 +304,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
-      </header>
+      </header>}
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu — also removed from DOM while video is open */}
       <AnimatePresence>
-        {mobileOpen && (
+        {!isVideoOpen && mobileOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}

@@ -31,6 +31,8 @@ interface RegisterResult {
 
 interface AppContextType extends AppState {
   isAdmin: boolean;
+  isVideoOpen: boolean;
+  setIsVideoOpen: (open: boolean) => void;
   validateLogin: (email: string, password: string) => Promise<LoginResult>;
   register: (name: string, email: string, password: string) => Promise<RegisterResult>;
   logout: () => void;
@@ -73,6 +75,7 @@ function applyAuth(user: ApiUser, activity: ApiActivity): Partial<AppState> {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
   const activityRef = useRef<ApiActivity>({ quizScore: null, linksChecked: 0, toolsChecked: [], failedTopics: [] });
 
   useEffect(() => {
@@ -198,6 +201,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         ...state,
         isAdmin,
+        isVideoOpen,
+        setIsVideoOpen,
         validateLogin,
         register,
         logout,

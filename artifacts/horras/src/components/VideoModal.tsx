@@ -2,6 +2,7 @@ import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Clock, Shield } from "lucide-react";
 import { useLang } from "@/context/LangContext";
+import { useApp } from "@/context/AppContext";
 
 interface VideoModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export default function VideoModal({
   descriptionAr,
 }: VideoModalProps) {
   const { isRTL } = useLang();
+  const { setIsVideoOpen } = useApp();
   const videoId = getYouTubeId(url);
 
   const displayTitle       = isRTL && titleAr       ? titleAr       : title;
@@ -56,13 +58,17 @@ export default function VideoModal({
     [onClose]
   );
 
+  /* ── Tell the layout to remove the header from DOM ── */
+  useEffect(() => {
+    setIsVideoOpen(isOpen);
+    return () => { if (isOpen) setIsVideoOpen(false); };
+  }, [isOpen, setIsVideoOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     document.addEventListener("keydown", handleKey);
-    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "";
     };
   }, [isOpen, handleKey]);
 
