@@ -11,6 +11,7 @@ interface VideoModalProps {
   url: string;
   category?: string;
   description?: string;
+  descriptionAr?: string;
 }
 
 function getYouTubeId(url: string): string | null {
@@ -20,10 +21,11 @@ function getYouTubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function VideoModal({ isOpen, onClose, title, titleAr, url, category, description }: VideoModalProps) {
+export default function VideoModal({ isOpen, onClose, title, titleAr, url, category, description, descriptionAr }: VideoModalProps) {
   const { isRTL } = useLang();
   const videoId = getYouTubeId(url);
   const displayTitle = isRTL && titleAr ? titleAr : title;
+  const displayDescription = isRTL && descriptionAr ? descriptionAr : description;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -73,8 +75,8 @@ export default function VideoModal({ isOpen, onClose, title, titleAr, url, categ
                     </span>
                   )}
                   <h3 className="text-sm font-bold text-white leading-snug line-clamp-2">{displayTitle}</h3>
-                  {description && (
-                    <p className="text-xs text-white/40 leading-relaxed mt-2 line-clamp-2">{description}</p>
+                  {displayDescription && (
+                    <p className="text-xs text-white/40 leading-relaxed mt-2 line-clamp-2">{displayDescription}</p>
                   )}
                 </div>
                 <button

@@ -94,12 +94,14 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<Partial<ApiVideo>>({});
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", titleAr: "", url: "", category: "", duration: "", description: "" });
+  const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", titleAr: "", url: "", category: "", duration: "", description: "", descriptionAr: "" });
   const [titleFetching, setTitleFetching] = useState(false);
+  const [descTranslating, setDescTranslating] = useState(false);
   const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users">("videos");
   const [durationFetching, setDurationFetching] = useState(false);
   const cancelFetchRef = useRef<(() => void) | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     api.videos.list().then(setVideos).finally(() => setVideosLoading(false));
@@ -209,6 +211,38 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const handleDescriptionChange = useCallback(
+    (desc: string, target: "new" | "edit") => {
+      if (target === "new") {
+        setNewVideo((p) => ({ ...p, description: desc }));
+      } else {
+        setEditData((p) => ({ ...p, description: desc }));
+      }
+      if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
+      if (!desc.trim()) return;
+      descDebounceRef.current = setTimeout(async () => {
+        setDescTranslating(true);
+        try {
+          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ar&dt=t&q=${encodeURIComponent(desc)}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json() as string[][][];
+            const translated = data[0]?.map((chunk) => chunk[0] ?? "").join("") ?? "";
+            if (translated) {
+              if (target === "new") {
+                setNewVideo((p) => ({ ...p, descriptionAr: translated }));
+              } else {
+                setEditData((p) => ({ ...p, descriptionAr: translated }));
+              }
+            }
+          }
+        } catch { }
+        finally { setDescTranslating(false); }
+      }, 900);
+    },
+    []
+  );
+
   const handleUrlChange = useCallback(
     (url: string, target: "new" | "edit") => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -260,9 +294,10 @@ export default function AdminDashboard() {
         category: newVideo.category || "",
         duration: newVideo.duration || "60s",
         description: newVideo.description || "",
+        descriptionAr: newVideo.descriptionAr || "",
       });
       setVideos((vs) => [...vs, video]);
-      setNewVideo({ title: "", titleAr: "", url: "", category: "", duration: "", description: "" });
+      setNewVideo({ title: "", titleAr: "", url: "", category: "", duration: "", description: "", descriptionAr: "" });
       setIsAddingNew(false);
       toast({ title: isRTL ? "تم إضافة الفيديو" : "Video added" });
     } catch {
@@ -414,9 +449,23 @@ export default function AdminDashboard() {
                       <Label className="text-xs text-muted-foreground">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
                       <textarea
                         value={newVideo.description || ""}
-                        onChange={(e) => setNewVideo((p) => ({ ...p, description: e.target.value }))}
+                        onChange={(e) => handleDescriptionChange(e.target.value, "new")}
                         rows={2}
                         placeholder={isRTL ? "وصف قصير عن محتوى الفيديو..." : "Short description about the video content..."}
+                        className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                        {isRTL ? "الوصف (عربي - يُملأ تلقائياً)" : "Description (Arabic - auto-filled)"}
+                        {descTranslating && <span className="text-primary text-[10px]">{isRTL ? "جاري الترجمة..." : "Translating..."}</span>}
+                      </Label>
+                      <textarea
+                        value={newVideo.descriptionAr || ""}
+                        onChange={(e) => setNewVideo((p) => ({ ...p, descriptionAr: e.target.value }))}
+                        rows={2}
+                        dir="rtl"
+                        placeholder={isRTL ? "وصف بالعربية..." : "Arabic description..."}
                         className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
                       />
                     </div>
@@ -485,9 +534,23 @@ export default function AdminDashboard() {
                             <Label className="text-xs text-muted-foreground">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
                             <textarea
                               value={editData.description ?? (video.description || "")}
-                              onChange={(e) => setEditData((p) => ({ ...p, description: e.target.value }))}
+                              onChange={(e) => handleDescriptionChange(e.target.value, "edit")}
                               rows={2}
                               placeholder={isRTL ? "وصف قصير عن محتوى الفيديو..." : "Short description about the video content..."}
+                              className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                            />
+                          </div>
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                              {isRTL ? "الوصف (عربي - يُملأ تلقائياً)" : "Description (Arabic - auto-filled)"}
+                              {descTranslating && <span className="text-primary text-[10px]">{isRTL ? "جاري الترجمة..." : "Translating..."}</span>}
+                            </Label>
+                            <textarea
+                              value={editData.descriptionAr ?? (video.descriptionAr || "")}
+                              onChange={(e) => setEditData((p) => ({ ...p, descriptionAr: e.target.value }))}
+                              rows={2}
+                              dir="rtl"
+                              placeholder={isRTL ? "وصف بالعربية..." : "Arabic description..."}
                               className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
                             />
                           </div>

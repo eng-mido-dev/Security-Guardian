@@ -409,6 +409,7 @@ export default function Dashboard() {
           url={activeVideo.url}
           category={activeVideo.category}
           description={activeVideo.description}
+          descriptionAr={activeVideo.descriptionAr}
         />
       )}
     </div>

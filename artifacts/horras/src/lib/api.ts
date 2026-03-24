@@ -63,6 +63,7 @@ export interface ApiVideo {
   category: string;
   duration: string;
   description: string;
+  descriptionAr: string;
   createdAt: string;
 }
 
