@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -63,6 +63,26 @@ export const categoriesTable = pgTable("categories", {
   id: serial("id").primaryKey(),
   nameAr: text("name_ar").notNull(),
   nameEn: text("name_en").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const notificationsTable = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  titleAr: text("title_ar").notNull().default(""),
+  titleEn: text("title_en").notNull().default(""),
+  bodyAr: text("body_ar").notNull(),
+  bodyEn: text("body_en").notNull().default(""),
+  isActive: boolean("is_active").notNull().default(true),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+});
+
+export const adminLogsTable = pgTable("admin_logs", {
+  id: serial("id").primaryKey(),
+  adminEmail: text("admin_email").notNull(),
+  actionAr: text("action_ar").notNull(),
+  actionEn: text("action_en").notNull(),
+  entityType: text("entity_type").notNull().default(""),
+  entityId: text("entity_id").notNull().default(""),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

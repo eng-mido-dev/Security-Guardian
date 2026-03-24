@@ -82,6 +82,35 @@ export interface ApiCategory {
   createdAt: string;
 }
 
+export interface ApiNotification {
+  id: number;
+  titleAr: string;
+  titleEn: string;
+  bodyAr: string;
+  bodyEn: string;
+  isActive: boolean;
+  sentAt: string;
+}
+
+export interface ApiAdminLog {
+  id: number;
+  adminEmail: string;
+  actionAr: string;
+  actionEn: string;
+  entityType: string;
+  entityId: string;
+  createdAt: string;
+}
+
+export interface ApiAnalytics {
+  avgScore: number | null;
+  topFailedTopics: { topic: string; count: number }[];
+  totalLinksChecked: number;
+  usersWithQuiz: number;
+  totalUsers: number;
+  scoreBuckets: { excellent: number; good: number; average: number; poor: number };
+}
+
 export interface ScanCheck {
   label: string;
   labelEn: string;
@@ -156,8 +185,18 @@ export const api = {
       request<ApiActivity>("/activity", { method: "PATCH", body: JSON.stringify(data) }),
   },
 
+  notifications: {
+    getActive: () => request<ApiNotification[]>("/notifications/active"),
+  },
+
   admin: {
     users: () => request<AdminUser[]>("/admin/users"),
+    deleteUser: (id: number) =>
+      request<{ ok: boolean }>(`/admin/users/${id}`, { method: "DELETE" }),
+    resetPassword: (id: number) =>
+      request<{ ok: boolean; newPassword: string; userEmail: string }>(`/admin/users/${id}/reset-password`, { method: "POST" }),
+    analytics: () => request<ApiAnalytics>("/admin/analytics"),
+    logs: () => request<ApiAdminLog[]>("/admin/logs"),
     categories: {
       list: () => request<ApiCategory[]>("/admin/categories"),
       create: (nameAr: string, nameEn: string) =>
@@ -172,6 +211,15 @@ export const api = {
         }),
       delete: (id: number) =>
         request<{ ok: boolean }>(`/admin/categories/${id}`, { method: "DELETE" }),
+    },
+    notifications: {
+      list: () => request<ApiNotification[]>("/admin/notifications"),
+      create: (data: { titleAr?: string; titleEn?: string; bodyAr: string; bodyEn?: string }) =>
+        request<ApiNotification>("/admin/notifications", { method: "POST", body: JSON.stringify(data) }),
+      toggle: (id: number) =>
+        request<ApiNotification>(`/admin/notifications/${id}/toggle`, { method: "PATCH" }),
+      delete: (id: number) =>
+        request<{ ok: boolean }>(`/admin/notifications/${id}`, { method: "DELETE" }),
     },
   },
 

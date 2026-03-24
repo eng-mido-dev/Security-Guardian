@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useApp } from "@/context/AppContext";
 import { useLang } from "@/context/LangContext";
-import { Shield, Menu, X, LogOut, Globe, ChevronDown, LayoutDashboard, AlertTriangle, PlayCircle, Wrench, Info, Home, Link2, ClipboardCheck } from "lucide-react";
+import { Shield, Menu, X, LogOut, Globe, ChevronDown, LayoutDashboard, AlertTriangle, PlayCircle, Wrench, Info, Home, Link2, ClipboardCheck, Bell, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { api, type ApiNotification } from "@/lib/api";
 
 const NAV_PRIMARY = [
   { labelKey: "nav.home", path: "/", icon: Home },
@@ -26,6 +27,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+
+  // ── Global notifications ──
+  const [activeNotifications, setActiveNotifications] = useState<ApiNotification[]>([]);
+  const [notifIndex, setNotifIndex] = useState(0);
+  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+    api.notifications.getActive()
+      .then((notifs) => {
+        const stored = localStorage.getItem("horras_dismissed_notifs");
+        const dismissed = stored ? new Set<number>(JSON.parse(stored) as number[]) : new Set<number>();
+        setDismissedIds(dismissed);
+        setActiveNotifications(notifs.filter((n) => !dismissed.has(n.id)));
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const visibleNotifs = activeNotifications.filter((n) => !dismissedIds.has(n.id));
+  const currentNotif = visibleNotifs[notifIndex] ?? null;
+
+  const dismissNotif = (id: number) => {
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem("horras_dismissed_notifs", JSON.stringify([...next]));
+      return next;
+    });
+    setNotifIndex((i) => Math.max(0, i - 1));
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -53,6 +84,62 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {isRTL ? "وضع المدير — Admin Mode" : "Admin Mode — وضع المدير"}
         </div>
       )}
+
+      {/* ── Global Notification Banner ── */}
+      <AnimatePresence>
+        {user && !isAdmin && currentNotif && (
+          <motion.div
+            key={currentNotif.id}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden sticky top-0 z-[60]"
+          >
+            <div className="bg-primary/95 backdrop-blur-sm text-primary-foreground px-4 py-2.5 flex items-center gap-3" dir={isRTL ? "rtl" : "ltr"}>
+              <Bell className="w-4 h-4 shrink-0 opacity-80" />
+              <div className="flex-1 min-w-0">
+                {((isRTL ? currentNotif.titleAr : currentNotif.titleEn) || (isRTL ? currentNotif.titleEn : currentNotif.titleAr)) && (
+                  <span className="font-bold text-xs me-2">
+                    {isRTL ? (currentNotif.titleAr || currentNotif.titleEn) : (currentNotif.titleEn || currentNotif.titleAr)}:
+                  </span>
+                )}
+                <span className="text-xs opacity-90">
+                  {isRTL ? currentNotif.bodyAr : (currentNotif.bodyEn || currentNotif.bodyAr)}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {visibleNotifs.length > 1 && (
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={() => setNotifIndex((i) => Math.max(0, i - 1))}
+                      disabled={notifIndex === 0}
+                      className="p-1 rounded opacity-70 hover:opacity-100 disabled:opacity-30"
+                    >
+                      {isRTL ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+                    </button>
+                    <span className="text-[10px] opacity-70">{notifIndex + 1}/{visibleNotifs.length}</span>
+                    <button
+                      onClick={() => setNotifIndex((i) => Math.min(visibleNotifs.length - 1, i + 1))}
+                      disabled={notifIndex === visibleNotifs.length - 1}
+                      className="p-1 rounded opacity-70 hover:opacity-100 disabled:opacity-30"
+                    >
+                      {isRTL ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={() => dismissNotif(currentNotif.id)}
+                  className="p-1 rounded hover:bg-primary-foreground/10 opacity-70 hover:opacity-100 transition-opacity"
+                  title={isRTL ? "إغلاق" : "Dismiss"}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Navbar */}
       <header className="sticky top-0 z-50 w-full bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/[0.06]">

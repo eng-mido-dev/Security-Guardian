@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/context/LangContext";
-import { api, type ApiVideo, type AdminUser, type ApiReport, type ApiCategory } from "@/lib/api";
+import { api, type ApiVideo, type AdminUser, type ApiReport, type ApiCategory, type ApiNotification, type ApiAdminLog, type ApiAnalytics } from "@/lib/api";
 import {
   Shield, Users, FileText, PlayCircle, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
-  Eye, Database, Play, Loader2, Tag, ChevronDown
+  Eye, Database, Play, Loader2, Tag, ChevronDown, Search,
+  Bell, BellOff, BarChart2, ClipboardList, KeyRound,
+  TrendingUp, AlertTriangle, RefreshCw, ToggleLeft, ToggleRight,
+  Clock, User, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,7 +113,7 @@ export default function AdminDashboard() {
   const [descTranslating, setDescTranslating] = useState(false);
   const [titleTranslatingFromAr, setTitleTranslatingFromAr] = useState(false);
   const [descTranslatingFromAr, setDescTranslatingFromAr] = useState(false);
-  const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users" | "categories">("videos");
+  const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users" | "categories" | "analytics" | "notifications" | "logs">("videos");
   const [durationFetching, setDurationFetching] = useState(false);
   const [expandedDescId, setExpandedDescId] = useState<number | null>(null);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
@@ -124,6 +127,27 @@ export default function AdminDashboard() {
   const catDropRef = useRef<HTMLDivElement>(null);
   const editCatDropRef = useRef<HTMLDivElement>(null);
   const cancelFetchRef = useRef<(() => void) | null>(null);
+
+  // ── Users tab ──
+  const [userSearch, setUserSearch] = useState("");
+  const [userDeleting, setUserDeleting] = useState<number | null>(null);
+  const [userResetting, setUserResetting] = useState<number | null>(null);
+  const [resetResult, setResetResult] = useState<{ email: string; password: string } | null>(null);
+
+  // ── Analytics tab ──
+  const [analytics, setAnalytics] = useState<ApiAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // ── Notifications tab ──
+  const [notifications, setNotifications] = useState<ApiNotification[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [newNotif, setNewNotif] = useState({ titleAr: "", titleEn: "", bodyAr: "", bodyEn: "" });
+  const [notifSending, setNotifSending] = useState(false);
+  const [notifToggling, setNotifToggling] = useState<number | null>(null);
+
+  // ── Logs tab ──
+  const [logs, setLogs] = useState<ApiAdminLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -151,6 +175,24 @@ export default function AdminDashboard() {
       cats.forEach((c) => { init[c.id] = { nameAr: c.nameAr, nameEn: c.nameEn }; });
       setCatEditData(init);
     }).catch(() => {}).finally(() => setCategoriesLoading(false));
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "analytics") return;
+    setAnalyticsLoading(true);
+    api.admin.analytics().then(setAnalytics).catch(() => {}).finally(() => setAnalyticsLoading(false));
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "notifications") return;
+    setNotifLoading(true);
+    api.admin.notifications.list().then(setNotifications).catch(() => {}).finally(() => setNotifLoading(false));
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "logs") return;
+    setLogsLoading(true);
+    api.admin.logs().then(setLogs).catch(() => {}).finally(() => setLogsLoading(false));
   }, [activeTab]);
 
   useEffect(() => {
@@ -428,10 +470,13 @@ export default function AdminDashboard() {
   ];
 
   const tabs = [
-    { id: "videos" as const, label: isRTL ? "فيديوهات التعلم" : "Learning Videos", icon: <PlayCircle className="w-4 h-4" /> },
+    { id: "videos" as const, label: isRTL ? "الفيديوهات" : "Videos", icon: <PlayCircle className="w-4 h-4" /> },
     { id: "categories" as const, label: isRTL ? "التصنيفات" : "Categories", icon: <Tag className="w-4 h-4" /> },
     { id: "reports" as const, label: isRTL ? "البلاغات" : "Reports", icon: <FileText className="w-4 h-4" /> },
     { id: "users" as const, label: isRTL ? "المستخدمون" : "Users", icon: <Users className="w-4 h-4" /> },
+    { id: "analytics" as const, label: isRTL ? "الإحصائيات" : "Analytics", icon: <BarChart2 className="w-4 h-4" /> },
+    { id: "notifications" as const, label: isRTL ? "الإشعارات" : "Notifications", icon: <Bell className="w-4 h-4" /> },
+    { id: "logs" as const, label: isRTL ? "السجلات" : "Logs", icon: <ClipboardList className="w-4 h-4" /> },
   ];
 
   const saveCategory = async (id: number) => {
@@ -473,6 +518,77 @@ export default function AdminDashboard() {
       toast({ title: isRTL ? "فشلت الإضافة" : "Add failed", variant: "destructive" });
     } finally {
       setNewCatSaving(false);
+    }
+  };
+
+  // ── User management ───────────────────────────────────────────────────────────
+  const deleteUser = async (id: number) => {
+    if (!confirm(isRTL ? "هل أنت متأكد من حذف هذا المستخدم؟" : "Delete this user permanently?")) return;
+    setUserDeleting(id);
+    try {
+      await api.admin.deleteUser(id);
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      toast({ title: isRTL ? "تم حذف المستخدم" : "User deleted" });
+    } catch {
+      toast({ title: isRTL ? "فشل الحذف" : "Delete failed", variant: "destructive" });
+    } finally {
+      setUserDeleting(null);
+    }
+  };
+
+  const resetPassword = async (id: number) => {
+    setUserResetting(id);
+    try {
+      const res = await api.admin.resetPassword(id);
+      setResetResult({ email: res.userEmail, password: res.newPassword });
+      toast({ title: isRTL ? "تمت إعادة التعيين" : "Password reset" });
+    } catch {
+      toast({ title: isRTL ? "فشلت إعادة التعيين" : "Reset failed", variant: "destructive" });
+    } finally {
+      setUserResetting(null);
+    }
+  };
+
+  // ── Notifications ─────────────────────────────────────────────────────────────
+  const sendNotification = async () => {
+    if (!newNotif.bodyAr.trim()) return;
+    setNotifSending(true);
+    try {
+      const created = await api.admin.notifications.create({
+        titleAr: newNotif.titleAr.trim(),
+        titleEn: newNotif.titleEn.trim(),
+        bodyAr: newNotif.bodyAr.trim(),
+        bodyEn: newNotif.bodyEn.trim(),
+      });
+      setNotifications((prev) => [created, ...prev]);
+      setNewNotif({ titleAr: "", titleEn: "", bodyAr: "", bodyEn: "" });
+      toast({ title: isRTL ? "تم إرسال الإشعار" : "Notification sent" });
+    } catch {
+      toast({ title: isRTL ? "فشل الإرسال" : "Send failed", variant: "destructive" });
+    } finally {
+      setNotifSending(false);
+    }
+  };
+
+  const toggleNotification = async (id: number) => {
+    setNotifToggling(id);
+    try {
+      const updated = await api.admin.notifications.toggle(id);
+      setNotifications((prev) => prev.map((n) => n.id === id ? updated : n));
+    } catch {
+      toast({ title: isRTL ? "فشل التحديث" : "Update failed", variant: "destructive" });
+    } finally {
+      setNotifToggling(null);
+    }
+  };
+
+  const deleteNotification = async (id: number) => {
+    try {
+      await api.admin.notifications.delete(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      toast({ title: isRTL ? "تم حذف الإشعار" : "Notification deleted" });
+    } catch {
+      toast({ title: isRTL ? "فشل الحذف" : "Delete failed", variant: "destructive" });
     }
   };
 
@@ -524,12 +640,12 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5 mb-6 w-fit">
+        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5 mb-6 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
                 activeTab === tab.id
                   ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                   : "text-muted-foreground hover:text-white hover:bg-white/5"
@@ -1255,38 +1371,504 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === "users" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 className="text-lg font-bold mb-4">{isRTL ? "المستخدمون المسجلون" : "Registered Users"}</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            {/* Header + Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold">{isRTL ? "إدارة المستخدمين" : "User Management"}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {users.length} {isRTL ? "مستخدم مسجّل" : "registered users"}
+                </p>
+              </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder={isRTL ? "ابحث بالاسم أو البريد..." : "Search by name or email..."}
+                  className="h-9 ps-9 rounded-xl bg-black/40 border-white/10 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Reset result banner */}
+            <AnimatePresence>
+              {resetResult && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-start justify-between gap-3 bg-green-500/10 border border-green-500/30 rounded-2xl p-4">
+                    <div>
+                      <p className="text-sm font-bold text-green-400 mb-1">
+                        {isRTL ? "تمت إعادة تعيين كلمة المرور" : "Password Reset Successfully"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-2">{resetResult.email}</p>
+                      <div className="flex items-center gap-2 bg-black/40 rounded-lg px-3 py-1.5 w-fit border border-white/10">
+                        <KeyRound className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="font-mono text-sm text-white tracking-wider">{resetResult.password}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/60 mt-2">
+                        {isRTL ? "شارك هذه الكلمة مع المستخدم — ستختفي عند الإغلاق" : "Share this with the user — it disappears when dismissed"}
+                      </p>
+                    </div>
+                    <button onClick={() => setResetResult(null)} className="text-muted-foreground hover:text-white p-1">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Table */}
             {users.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <Database className="w-10 h-10 mx-auto mb-3 opacity-30" />
                 <p>{isRTL ? "لا يوجد مستخدمون مسجلون بعد" : "No registered users yet"}</p>
               </div>
+            ) : (() => {
+              const filtered = users.filter((u) => {
+                const q = userSearch.trim().toLowerCase();
+                if (!q) return true;
+                return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+              });
+              return (
+                <div className="bg-[#0D0D0F] border border-white/5 rounded-2xl overflow-hidden">
+                  {filtered.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground text-sm">
+                      {isRTL ? "لا توجد نتائج" : "No results found"}
+                    </div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/5 text-muted-foreground text-xs uppercase tracking-wider">
+                          <th className="px-5 py-3 text-start font-medium">{isRTL ? "المستخدم" : "User"}</th>
+                          <th className="px-5 py-3 text-start font-medium hidden sm:table-cell">{isRTL ? "البريد" : "Email"}</th>
+                          <th className="px-5 py-3 text-start font-medium hidden md:table-cell">{isRTL ? "تاريخ التسجيل" : "Joined"}</th>
+                          <th className="px-5 py-3 text-end font-medium">{isRTL ? "الإجراءات" : "Actions"}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {filtered.map((u) => (
+                          <tr key={u.id} className="hover:bg-white/[0.02] transition-colors group">
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white shrink-0">
+                                  {u.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-medium">{u.name}</p>
+                                  <p className="text-xs text-muted-foreground sm:hidden" dir="ltr">{u.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5 text-muted-foreground hidden sm:table-cell" dir="ltr">{u.email}</td>
+                            <td className="px-5 py-3.5 text-muted-foreground text-xs hidden md:table-cell">
+                              {new Date(u.joinDate).toLocaleDateString(isRTL ? "ar-SA" : "en-US")}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2.5 text-xs rounded-lg gap-1 text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10"
+                                  onClick={() => resetPassword(u.id)}
+                                  disabled={userResetting === u.id}
+                                >
+                                  {userResetting === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
+                                  <span className="hidden sm:inline">{isRTL ? "إعادة تعيين" : "Reset"}</span>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2.5 text-xs rounded-lg gap-1 text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
+                                  onClick={() => deleteUser(u.id)}
+                                  disabled={userDeleting === u.id}
+                                >
+                                  {userDeleting === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                  <span className="hidden sm:inline">{isRTL ? "حذف" : "Delete"}</span>
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
+
+        {/* ═══════════════════════════════════════════ ANALYTICS TAB ══════════════════════════════════ */}
+        {activeTab === "analytics" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div>
+              <h2 className="text-lg font-bold">{isRTL ? "إحصائيات الكويزات" : "Quiz Analytics"}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isRTL ? "نظرة شاملة على أداء المستخدمين واهتماماتهم" : "Overview of user performance and learning gaps"}
+              </p>
+            </div>
+
+            {analyticsLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+              </div>
+            ) : !analytics ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <BarChart2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p>{isRTL ? "لا توجد بيانات" : "No data available"}</p>
+              </div>
+            ) : (
+              <>
+                {/* ── KPI Cards ── */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    {
+                      label: isRTL ? "متوسط الدرجة" : "Avg Score",
+                      value: analytics.avgScore !== null ? `${analytics.avgScore}%` : isRTL ? "—" : "—",
+                      icon: <TrendingUp className="w-5 h-5" />,
+                      color: "text-primary", bg: "bg-primary/10 border-primary/20",
+                    },
+                    {
+                      label: isRTL ? "أكملوا الكويز" : "Took Quiz",
+                      value: analytics.usersWithQuiz,
+                      icon: <ClipboardList className="w-5 h-5" />,
+                      color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/20",
+                    },
+                    {
+                      label: isRTL ? "إجمالي المستخدمين" : "Total Users",
+                      value: analytics.totalUsers,
+                      icon: <Users className="w-5 h-5" />,
+                      color: "text-green-400", bg: "bg-green-400/10 border-green-400/20",
+                    },
+                    {
+                      label: isRTL ? "روابط مفحوصة" : "Links Checked",
+                      value: analytics.totalLinksChecked,
+                      icon: <Activity className="w-5 h-5" />,
+                      color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20",
+                    },
+                  ].map((kpi, i) => (
+                    <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                      className={`rounded-2xl p-5 border ${kpi.bg}`}>
+                      <div className={`${kpi.color} mb-3`}>{kpi.icon}</div>
+                      <p className="text-3xl font-black mb-1">{kpi.value}</p>
+                      <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* ── Score Distribution ── */}
+                  <div className="bg-[#0D0D0F] border border-white/5 rounded-2xl p-5">
+                    <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
+                      <BarChart2 className="w-4 h-4 text-primary" />
+                      {isRTL ? "توزيع الدرجات" : "Score Distribution"}
+                    </h3>
+                    {analytics.usersWithQuiz === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-8">{isRTL ? "لم يكمل أحد الكويز بعد" : "No one has taken the quiz yet"}</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {[
+                          { label: isRTL ? "ممتاز (90%+)" : "Excellent (90%+)", count: analytics.scoreBuckets.excellent, color: "bg-green-500" },
+                          { label: isRTL ? "جيد (70–89%)" : "Good (70–89%)", count: analytics.scoreBuckets.good, color: "bg-primary" },
+                          { label: isRTL ? "متوسط (50–69%)" : "Average (50–69%)", count: analytics.scoreBuckets.average, color: "bg-amber-500" },
+                          { label: isRTL ? "ضعيف (أقل من 50%)" : "Poor (<50%)", count: analytics.scoreBuckets.poor, color: "bg-red-500" },
+                        ].map((b, i) => {
+                          const pct = analytics.usersWithQuiz > 0 ? Math.round((b.count / analytics.usersWithQuiz) * 100) : 0;
+                          return (
+                            <div key={i}>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-xs text-muted-foreground">{b.label}</span>
+                                <span className="text-xs font-bold">{b.count} <span className="text-muted-foreground font-normal">({pct}%)</span></span>
+                              </div>
+                              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ delay: 0.2 + i * 0.08, duration: 0.6, ease: "easeOut" }}
+                                  className={`h-full rounded-full ${b.color}`}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Top 5 Weak Points ── */}
+                  <div className="bg-[#0D0D0F] border border-white/5 rounded-2xl p-5">
+                    <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      {isRTL ? "أكثر 5 أسئلة يخطئ فيها المستخدمون" : "Top 5 Most Missed Questions"}
+                    </h3>
+                    {analytics.topFailedTopics.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-8">
+                        {isRTL ? "لا توجد بيانات أخطاء بعد" : "No failure data yet"}
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {analytics.topFailedTopics.map((item, i) => {
+                          const maxCount = analytics.topFailedTopics[0]?.count ?? 1;
+                          const pct = Math.round((item.count / maxCount) * 100);
+                          return (
+                            <motion.div key={i} initial={{ opacity: 0, x: isRTL ? 12 : -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.07 }}>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-xs font-mono text-muted-foreground/50 shrink-0">#{i + 1}</span>
+                                  <span className="text-xs text-white truncate">{item.topic}</span>
+                                </div>
+                                <span className="text-xs font-bold text-red-400 shrink-0 ms-2">{item.count}×</span>
+                              </div>
+                              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ delay: 0.3 + i * 0.08, duration: 0.5, ease: "easeOut" }}
+                                  className="h-full rounded-full bg-gradient-to-r from-red-500/70 to-red-400"
+                                />
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                        <p className="text-[10px] text-muted-foreground/50 pt-2 border-t border-white/5">
+                          {isRTL ? "الأسئلة المكررة تشير إلى موضوعات تحتاج فيديوهات إضافية" : "Recurring topics suggest areas needing more video content"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Refresh button ── */}
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-xl gap-1.5 text-muted-foreground hover:text-white text-xs"
+                    onClick={() => {
+                      setAnalyticsLoading(true);
+                      api.admin.analytics().then(setAnalytics).finally(() => setAnalyticsLoading(false));
+                    }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    {isRTL ? "تحديث" : "Refresh"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
+
+        {/* ═══════════════════════════════════════════ NOTIFICATIONS TAB ════════════════════════════════ */}
+        {activeTab === "notifications" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div>
+              <h2 className="text-lg font-bold">{isRTL ? "إرسال تنبيهات عامة" : "Global Notifications"}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isRTL ? "الإشعارات النشطة تظهر كشريط في لوحة كل مستخدم" : "Active notifications appear as a banner in every user's dashboard"}
+              </p>
+            </div>
+
+            {/* ── Compose ── */}
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 space-y-4">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                <Bell className="w-4 h-4" />
+                {isRTL ? "إنشاء إشعار جديد" : "Compose Notification"}
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-primary/60 uppercase tracking-wider">{isRTL ? "العنوان بالعربية ★" : "Arabic Title ★"}</Label>
+                  <Input dir="rtl" value={newNotif.titleAr} onChange={(e) => setNewNotif((p) => ({ ...p, titleAr: e.target.value }))}
+                    placeholder="مثال: دورة جديدة متاحة!" className="h-9 rounded-xl bg-black/40 border-primary/20 text-sm" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">{isRTL ? "العنوان بالإنجليزية" : "English Title"}</Label>
+                  <Input value={newNotif.titleEn} onChange={(e) => setNewNotif((p) => ({ ...p, titleEn: e.target.value }))}
+                    placeholder="e.g. New Course Available!" className="h-9 rounded-xl bg-black/30 border-white/10 text-sm" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-primary/60 uppercase tracking-wider">{isRTL ? "نص الرسالة بالعربية ★" : "Arabic Body ★"}</Label>
+                  <textarea
+                    dir="rtl"
+                    value={newNotif.bodyAr}
+                    onChange={(e) => setNewNotif((p) => ({ ...p, bodyAr: e.target.value }))}
+                    placeholder={isRTL ? "اكتب رسالتك هنا..." : "Write your message in Arabic..."}
+                    rows={3}
+                    className="w-full rounded-xl bg-black/40 border border-primary/20 text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 resize-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">{isRTL ? "نص الرسالة بالإنجليزية" : "English Body"}</Label>
+                  <textarea
+                    value={newNotif.bodyEn}
+                    onChange={(e) => setNewNotif((p) => ({ ...p, bodyEn: e.target.value }))}
+                    placeholder="Write your message in English..."
+                    rows={3}
+                    className="w-full rounded-xl bg-black/30 border border-white/10 text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none"
+                  />
+                </div>
+              </div>
+
+              <Button
+                size="sm"
+                className="rounded-xl gap-1.5"
+                onClick={sendNotification}
+                disabled={notifSending || !newNotif.bodyAr.trim()}
+              >
+                {notifSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                {isRTL ? "إرسال للجميع" : "Broadcast to All"}
+              </Button>
+            </div>
+
+            {/* ── Existing Notifications ── */}
+            {notifLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-7 h-7 animate-spin text-primary/40" />
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-14 text-muted-foreground bg-[#0D0D0F] border border-white/5 rounded-2xl">
+                <BellOff className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">{isRTL ? "لا توجد إشعارات حتى الآن" : "No notifications yet"}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">
+                  {isRTL ? "الإشعارات السابقة" : "Sent Notifications"}
+                </h3>
+                {notifications.map((n) => (
+                  <motion.div
+                    key={n.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`rounded-2xl border p-4 transition-all ${n.isActive ? "border-primary/20 bg-primary/5" : "border-white/5 bg-[#0D0D0F] opacity-60"}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${n.isActive ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-white/5 text-muted-foreground border-white/10"}`}>
+                            {n.isActive ? (isRTL ? "● نشط" : "● Active") : (isRTL ? "○ معطّل" : "○ Inactive")}
+                          </span>
+                          {(n.titleAr || n.titleEn) && (
+                            <span className="text-xs font-bold text-white">{isRTL ? n.titleAr || n.titleEn : n.titleEn || n.titleAr}</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground/50">
+                            {new Date(n.sentAt).toLocaleString(isRTL ? "ar-SA" : "en-US")}
+                          </span>
+                        </div>
+                        <p className="text-sm text-white/80" dir={isRTL ? "rtl" : "ltr"}>
+                          {isRTL ? n.bodyAr : (n.bodyEn || n.bodyAr)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => toggleNotification(n.id)}
+                          disabled={notifToggling === n.id}
+                          className={`p-1.5 rounded-lg transition-colors ${n.isActive ? "hover:bg-amber-400/10 hover:text-amber-400" : "hover:bg-green-400/10 hover:text-green-400"} text-muted-foreground`}
+                          title={n.isActive ? (isRTL ? "إيقاف" : "Deactivate") : (isRTL ? "تفعيل" : "Activate")}
+                        >
+                          {notifToggling === n.id ? <Loader2 className="w-4 h-4 animate-spin" /> : n.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => deleteNotification(n.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 hover:text-red-400 text-muted-foreground transition-colors"
+                          title={isRTL ? "حذف" : "Delete"}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ═══════════════════════════════════════════ LOGS TAB ════════════════════════════════════════ */}
+        {activeTab === "logs" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold">{isRTL ? "سجل العمليات" : "Activity Logs"}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isRTL ? "سجل شامل لجميع إجراءات المدير — للقراءة فقط" : "Read-only record of all admin actions"}
+                </p>
+              </div>
+              <Button
+                size="sm" variant="ghost"
+                className="rounded-xl gap-1.5 text-xs text-muted-foreground hover:text-white"
+                onClick={() => {
+                  setLogsLoading(true);
+                  api.admin.logs().then(setLogs).finally(() => setLogsLoading(false));
+                }}
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                {isRTL ? "تحديث" : "Refresh"}
+              </Button>
+            </div>
+
+            {logsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground bg-[#0D0D0F] border border-white/5 rounded-2xl">
+                <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">{isRTL ? "لا توجد سجلات بعد" : "No logs yet"}</p>
+                <p className="text-xs mt-1 opacity-60">{isRTL ? "ستظهر الإجراءات هنا تلقائياً" : "Actions will appear here automatically"}</p>
+              </div>
             ) : (
               <div className="bg-[#0D0D0F] border border-white/5 rounded-2xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/5 text-muted-foreground text-xs uppercase tracking-wider">
-                      <th className="px-5 py-3 text-start font-medium">{isRTL ? "الاسم" : "Name"}</th>
-                      <th className="px-5 py-3 text-start font-medium">{isRTL ? "البريد الإلكتروني" : "Email"}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">
-                              {u.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="font-medium">{u.name}</span>
+                <div className="divide-y divide-white/5">
+                  {logs.map((log, idx) => {
+                    const entityIcon = log.entityType === "video" ? <PlayCircle className="w-3.5 h-3.5" /> :
+                      log.entityType === "report" ? <FileText className="w-3.5 h-3.5" /> :
+                      log.entityType === "user" ? <User className="w-3.5 h-3.5" /> :
+                      log.entityType === "notification" ? <Bell className="w-3.5 h-3.5" /> :
+                      <Activity className="w-3.5 h-3.5" />;
+                    const entityColor = log.entityType === "video" ? "text-primary bg-primary/10" :
+                      log.entityType === "report" ? "text-amber-400 bg-amber-400/10" :
+                      log.entityType === "user" ? "text-blue-400 bg-blue-400/10" :
+                      log.entityType === "notification" ? "text-green-400 bg-green-400/10" :
+                      "text-muted-foreground bg-white/5";
+                    return (
+                      <motion.div
+                        key={log.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: idx * 0.02 }}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors"
+                      >
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${entityColor}`}>
+                          {entityIcon}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-white/90 leading-snug">{isRTL ? log.actionAr : log.actionEn}</p>
+                          <p className="text-[10px] text-muted-foreground/50 mt-0.5" dir="ltr">{log.adminEmail}</p>
+                        </div>
+                        <div className="shrink-0 text-end">
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground/40">
+                            <Clock className="w-3 h-3" />
+                            <span dir="ltr">{new Date(log.createdAt).toLocaleString(isRTL ? "ar-SA" : "en-US", { dateStyle: "short", timeStyle: "short" })}</span>
                           </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-muted-foreground" dir="ltr">{u.email}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+                <div className="px-4 py-3 border-t border-white/5 bg-white/[0.01]">
+                  <p className="text-[10px] text-muted-foreground/40 text-center">
+                    {isRTL ? `إجمالي ${logs.length} إجراء محفوظ` : `${logs.length} actions logged in total`}
+                  </p>
+                </div>
               </div>
             )}
           </motion.div>
