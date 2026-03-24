@@ -53,6 +53,7 @@ export const reportsTable = pgTable("reports", {
   fraudType: text("fraud_type").notNull(),
   url: text("url").notNull().default(""),
   description: text("description").notNull().default(""),
+  attachmentUrl: text("attachment_url").notNull().default(""),
   isAnonymous: text("is_anonymous").notNull().default("false"),
   status: text("status").notNull().default("pending"),
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),

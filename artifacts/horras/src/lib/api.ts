@@ -107,6 +107,7 @@ export interface ApiReport {
   fraudType: string;
   url: string;
   description: string;
+  attachmentUrl: string;
   isAnonymous: string;
   status: "pending" | "resolved";
   submittedAt: string;
@@ -159,7 +160,7 @@ export const api = {
   },
 
   reports: {
-    submit: (data: { fraudType: string; url?: string; description?: string; isAnonymous?: boolean }) =>
+    submit: (data: { fraudType: string; url?: string; description?: string; attachmentUrl?: string; isAnonymous?: boolean }) =>
       request<{ id: number; message: string }>("/reports", { method: "POST", body: JSON.stringify(data) }),
     list: () => request<ApiReport[]>("/reports"),
     resolve: (id: number) =>

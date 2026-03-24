@@ -12,6 +12,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
+function getLocalizedCategory(category: string, isRTL: boolean): string {
+  if (!category) return "";
+  const parts = category.split(/\s[-–]\s/);
+  if (parts.length < 2) return category;
+  const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+  const arPart = parts.find(hasArabic) ?? parts[0];
+  const enPart = parts.find((p) => !hasArabic(p)) ?? parts[1];
+  return isRTL ? arPart : enPart;
+}
+
 declare global {
   interface Window {
     YT: {
@@ -741,7 +751,7 @@ export default function AdminDashboard() {
                         <div className="flex-grow min-w-0">
                           <p className="font-medium text-sm">{video.title}</p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            {video.category && <span className="text-xs bg-white/5 text-muted-foreground px-2 py-0.5 rounded-full">{video.category}</span>}
+                            {video.category && <span className="text-xs bg-white/5 text-muted-foreground px-2 py-0.5 rounded-full">{getLocalizedCategory(video.category, isRTL)}</span>}
                             {video.duration && <span className="text-xs text-muted-foreground/60">⏱ {video.duration}</span>}
                             {video.url && <span className="text-xs text-emerald-400/70 flex items-center gap-1"><Youtube className="w-3 h-3" />{isRTL ? "رابط مرتبط" : "Link attached"}</span>}
                           </div>
@@ -787,6 +797,7 @@ export default function AdminDashboard() {
                         <th className="px-4 py-3 text-start font-medium">{isRTL ? "البريد الإلكتروني" : "Email"}</th>
                         <th className="px-4 py-3 text-start font-medium">{isRTL ? "نوع الاحتيال" : "Fraud Type"}</th>
                         <th className="px-4 py-3 text-start font-medium">{isRTL ? "الرابط / التفاصيل" : "URL / Details"}</th>
+                        <th className="px-4 py-3 text-start font-medium">{isRTL ? "المرفق" : "Attachment"}</th>
                         <th className="px-4 py-3 text-start font-medium">{isRTL ? "التاريخ" : "Date"}</th>
                         <th className="px-4 py-3 text-start font-medium">{isRTL ? "الحالة" : "Status"}</th>
                         <th className="px-4 py-3 text-start font-medium">{isRTL ? "الإجراء" : "Actions"}</th>
@@ -813,6 +824,15 @@ export default function AdminDashboard() {
                               <span className="text-xs text-muted-foreground truncate block">{report.description.substring(0, 50)}{report.description.length > 50 ? "…" : ""}</span>
                             ) : (
                               <span className="text-muted-foreground/40">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            {report.attachmentUrl ? (
+                              <a href={report.attachmentUrl} target="_blank" rel="noopener noreferrer" title={isRTL ? "عرض المرفق" : "View attachment"} className="block w-10 h-8 rounded-md overflow-hidden border border-white/10 hover:border-primary/50 transition-colors shrink-0">
+                                <img src={report.attachmentUrl} alt="attachment" className="w-full h-full object-cover" />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground/40 text-xs">—</span>
                             )}
                           </td>
                           <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">

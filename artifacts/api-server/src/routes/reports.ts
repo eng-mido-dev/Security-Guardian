@@ -7,10 +7,11 @@ const router = Router();
 
 router.post("/reports", authMiddleware, async (req, res) => {
   try {
-    const { fraudType, url = "", description = "", isAnonymous = false } = req.body as {
+    const { fraudType, url = "", description = "", attachmentUrl = "", isAnonymous = false } = req.body as {
       fraudType?: string;
       url?: string;
       description?: string;
+      attachmentUrl?: string;
       isAnonymous?: boolean;
     };
 
@@ -29,6 +30,7 @@ router.post("/reports", authMiddleware, async (req, res) => {
         fraudType,
         url: url.trim(),
         description: description.trim(),
+        attachmentUrl: attachmentUrl.trim(),
         isAnonymous: isAnonymous ? "true" : "false",
         status: "pending",
       })

@@ -3,6 +3,16 @@ import { motion } from "framer-motion";
 import { Play, Clock, Youtube } from "lucide-react";
 import { type ApiVideo } from "@/lib/api";
 
+function getLocalizedCategory(category: string, isRTL: boolean): string {
+  if (!category) return "";
+  const parts = category.split(/\s[-–]\s/);
+  if (parts.length < 2) return category;
+  const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+  const arPart = parts.find(hasArabic) ?? parts[0];
+  const enPart = parts.find((p) => !hasArabic(p)) ?? parts[1];
+  return isRTL ? arPart : enPart;
+}
+
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
   const patterns = [
@@ -100,7 +110,7 @@ export default function VideoCard({ video, isRTL, onClick, index = 0 }: VideoCar
               color: "#FFB800",
             }}
           >
-            {video.category}
+            {getLocalizedCategory(video.category, isRTL)}
           </span>
         )}
 

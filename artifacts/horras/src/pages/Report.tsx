@@ -196,6 +196,7 @@ export default function Report() {
         fraudType,
         url: urlValue,
         description,
+        attachmentUrl: uploadedFile?.previewUrl ?? "",
         isAnonymous,
       });
       setSubmitted(true);

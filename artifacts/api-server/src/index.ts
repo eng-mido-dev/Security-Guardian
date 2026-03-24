@@ -1,7 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { seedAdmin, seedVideos } from "./lib/seed";
-import { backfillVideoTranslations } from "./routes/videos";
+import { seedAdmin } from "./lib/seed";
 
 const rawPort = process.env["PORT"];
 
@@ -18,12 +17,6 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 seedAdmin().catch((err) => logger.error({ err }, "Seed failed"));
-
-seedVideos()
-  .then(() => backfillVideoTranslations())
-  .catch((err) =>
-    logger.warn({ err }, "Video seed/translation failed (non-critical)")
-  );
 
 app.listen(port, (err) => {
   if (err) {

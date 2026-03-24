@@ -15,6 +15,16 @@ interface VideoModalProps {
   descriptionAr?: string;
 }
 
+function getLocalizedCategory(category: string, isRTL: boolean): string {
+  if (!category) return "";
+  const parts = category.split(/\s[-–]\s/);
+  if (parts.length < 2) return category;
+  const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+  const arPart = parts.find(hasArabic) ?? parts[0];
+  const enPart = parts.find((p) => !hasArabic(p)) ?? parts[1];
+  return isRTL ? arPart : enPart;
+}
+
 function getYouTubeId(url: string): string | null {
   const match = url.match(
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&\n?#]+)/
@@ -273,7 +283,7 @@ export default function VideoModal({
                             }}
                           >
                             <Shield style={{ width: "10px", height: "10px", flexShrink: 0 }} />
-                            {category}
+                            {getLocalizedCategory(category, isRTL)}
                           </span>
                         )}
                         {duration && (
