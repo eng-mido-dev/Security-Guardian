@@ -58,10 +58,13 @@ export default function VideoModal({
     [onClose]
   );
 
-  /* ── Tell the layout to remove the header from DOM ── */
+  /* ── Tell the layout to remove the header from DOM ──
+     Cleanup always resets to false so React 18 batched unmounts
+     (e.g. setIsOpen(false) + setActiveVideo(null) in same handler)
+     never leave the header hidden.                             */
   useEffect(() => {
     setIsVideoOpen(isOpen);
-    return () => { if (isOpen) setIsVideoOpen(false); };
+    return () => setIsVideoOpen(false);
   }, [isOpen, setIsVideoOpen]);
 
   useEffect(() => {

@@ -131,12 +131,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     >
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 border-e border-white/[0.055] bg-[#080808]/90 backdrop-blur-2xl">
-        <div className="flex items-center gap-2.5 px-5 py-[18px] border-b border-white/[0.05]">
-          <div className="bg-primary/15 p-1.5 rounded-lg border border-primary/25">
+        <Link href="/" className="flex items-center gap-2.5 px-5 py-[18px] border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors group">
+          <div className="bg-primary/15 p-1.5 rounded-lg border border-primary/25 group-hover:bg-primary/25 transition-colors">
             <Shield className="w-5 h-5 text-primary" />
           </div>
           <span className="text-xl font-black tracking-tight">حُراس</span>
-        </div>
+        </Link>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-none">
           {DASH_NAV.map((item) => (
@@ -176,23 +176,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main Area ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
 
         {/* ── Top Header ── */}
-        <header className="shrink-0 h-14 flex items-center justify-between px-5 border-b border-white/[0.05] bg-[#080808]/60 backdrop-blur-xl">
-          <div className="flex items-center gap-2.5">
-            <div className="md:hidden flex items-center gap-2">
-              <div className="bg-primary/15 p-1 rounded-md border border-primary/20">
-                <Shield className="w-4 h-4 text-primary" />
-              </div>
-              <span className="font-black text-sm">حُراس</span>
+        <header className="relative shrink-0 h-14 flex items-center justify-between px-5 border-b border-white/[0.05] bg-[#080808]/60 backdrop-blur-xl z-[60]">
+          {/* Mobile logo — clickable, navigates home */}
+          <Link href="/" className="md:hidden flex items-center gap-2 group">
+            <div className="bg-primary/15 p-1 rounded-md border border-primary/20 group-hover:bg-primary/25 transition-colors">
+              <Shield className="w-4 h-4 text-primary" />
             </div>
-            {user && (
-              <p className="hidden md:block text-sm text-white/35" dir={isRTL ? "rtl" : "ltr"}>
-                {isRTL ? `أهلاً، ${user.name} 👋` : `Hello, ${user.name} 👋`}
-              </p>
-            )}
-          </div>
+            <span className="font-black text-sm">حُراس</span>
+          </Link>
+          {/* Desktop spacer (sidebar already has the logo) */}
+          <div className="hidden md:block" />
 
           <div className="flex items-center gap-1.5">
             {/* Bell */}
@@ -223,7 +219,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.97 }}
                     transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute top-[calc(100%+10px)] w-80 bg-[#0d0d0d]/85 backdrop-blur-2xl border border-white/[0.09] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden z-[200] end-0"
+                    className="absolute top-[calc(100%+10px)] w-80 bg-[#0d0d0d]/85 backdrop-blur-2xl border border-white/[0.09] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden z-[9999] end-0"
                   >
                     <div className="h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
                     <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
