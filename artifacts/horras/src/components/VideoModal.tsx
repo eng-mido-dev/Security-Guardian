@@ -60,36 +60,35 @@ export default function VideoModal({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/*
-           * BACKDROP — z-index 99998
-           * Covers the ENTIRE screen including sticky navbar (z-50) and all dropdowns (z-100).
-           * backdrop-blur creates the frosted glass effect over everything.
-           */}
+          {/* ─────────────────────────────────────────────────────────
+              BACKDROP — z-index 99998
+              Covers ALL layers including sticky navbar (z-50) and
+              any dropdowns (z-100).  backdrop-blur gives the frosted
+              glass effect over the entire page.
+          ───────────────────────────────────────────────────────── */}
           <motion.div
             key="vm-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
             aria-hidden="true"
             style={{
               position: "fixed",
               inset: 0,
               zIndex: 99998,
-              background: "rgba(0,0,0,0.85)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
+              background: "rgba(0,0,0,0.88)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
             }}
           />
 
-          {/*
-           * SCROLL CONTAINER — z-index 99999
-           * overflow-y: auto lets the card scroll vertically when the viewport is short.
-           * min-h-full + flex + items-center keeps it vertically centered when there's room.
-           * The click-outside handler is on the backdrop above, so this is pointer-events-none
-           * except for the card itself.
-           */}
+          {/* ─────────────────────────────────────────────────────────
+              SCROLL SHELL — z-index 99999
+              outer div: scrolls when card is taller than viewport
+              inner div: flex centering (works when card fits viewport)
+          ───────────────────────────────────────────────────────── */}
           <div
             style={{
               position: "fixed",
@@ -97,271 +96,281 @@ export default function VideoModal({
               zIndex: 99999,
               overflowY: "auto",
               overflowX: "hidden",
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "center",
-              padding: "clamp(1rem, 4vw, 3rem)",
-              boxSizing: "border-box",
             }}
           >
-            <motion.div
-              key="vm-card"
-              initial={{ opacity: 0, y: 32, scale: 0.94 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 32, scale: 0.94 }}
-              transition={{ type: "spring", damping: 30, stiffness: 340, mass: 0.75 }}
-              onClick={(e) => e.stopPropagation()}
+            {/* centering wrapper — min-height: 100% lets flex-center work */}
+            <div
               style={{
-                position: "relative",
-                width: "100%",
-                maxWidth: "min(90vw, 680px)",
-                margin: "auto",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "100%",
+                padding: "clamp(1.25rem, 5vw, 3rem)",
+                boxSizing: "border-box",
               }}
             >
-              {/*
-               * CLOSE BUTTON — floats OUTSIDE the overflow-hidden card
-               * Positioned relative to the motion.div wrapper, so it's never clipped.
-               * On mobile this lands at the very top-right corner of the card.
-               */}
-              <button
-                onClick={onClose}
-                aria-label="Close video"
+              <motion.div
+                key="vm-card"
+                initial={{ opacity: 0, y: 28, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 28, scale: 0.95 }}
+                transition={{ type: "spring", damping: 28, stiffness: 320, mass: 0.8 }}
+                onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: "absolute",
-                  top: "-12px",
-                  right: "-12px",
-                  zIndex: 10,
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "rgba(20,20,24,0.96)",
-                  border: "1.5px solid rgba(255,255,255,0.15)",
-                  color: "rgba(255,255,255,0.7)",
-                  cursor: "pointer",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.6)",
-                  transition: "background 0.15s, color 0.15s, transform 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  const b = e.currentTarget;
-                  b.style.background = "rgba(255,184,0,0.15)";
-                  b.style.color = "#FFB800";
-                  b.style.transform = "scale(1.08)";
-                }}
-                onMouseLeave={(e) => {
-                  const b = e.currentTarget;
-                  b.style.background = "rgba(20,20,24,0.96)";
-                  b.style.color = "rgba(255,255,255,0.7)";
-                  b.style.transform = "scale(1)";
+                  position: "relative",
+                  /* 95vw on mobile → up to 800px on desktop */
+                  width: "min(95vw, 800px)",
+                  flex: "0 0 auto",
                 }}
               >
-                <X style={{ width: "16px", height: "16px" }} />
-              </button>
-
-              {/*
-               * CARD — flex column, max-h = 90% of viewport.
-               * Video (flex-shrink: 0) keeps its 16:9 ratio.
-               * Info panel (flex: 1, min-h: 0, overflow-y: auto) scrolls when content is tall.
-               */}
-              <div
-                style={{
-                  borderRadius: "16px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                  maxHeight: "calc(90vh - 2rem)",
-                  boxShadow: "0 48px 120px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.07)",
-                  background: "rgba(10,10,13,0.99)",
-                }}
-              >
-                {/* Gold shimmer line at very top */}
-                <div
-                  aria-hidden="true"
+                {/* ─── CLOSE BUTTON ───────────────────────────────────
+                    Sits OUTSIDE the overflow-hidden card so it is never
+                    clipped.  Large enough (44×44) to tap on mobile.
+                ─────────────────────────────────────────────────────── */}
+                <button
+                  onClick={onClose}
+                  aria-label={isRTL ? "إغلاق الفيديو" : "Close video"}
                   style={{
-                    height: "1px",
-                    flexShrink: 0,
-                    background: "linear-gradient(90deg, transparent 0%, rgba(255,184,0,0.55) 50%, transparent 100%)",
+                    position: "absolute",
+                    top: "-14px",
+                    right: "-14px",
+                    zIndex: 10,
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "#0d0d10",
+                    border: "2px solid rgba(255,255,255,0.14)",
+                    color: "rgba(255,255,255,0.75)",
+                    cursor: "pointer",
+                    boxShadow: "0 6px 24px rgba(0,0,0,0.7)",
+                    transition: "background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s",
                   }}
-                />
-
-                {/* ── VIDEO PLAYER — fixed 16:9, never shrinks ── */}
-                <div
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    flexShrink: 0,
-                    aspectRatio: "16 / 9",
-                    background: "#000",
-                    overflow: "hidden",
+                  onMouseEnter={(e) => {
+                    const b = e.currentTarget;
+                    b.style.background = "#FFB800";
+                    b.style.color = "#000";
+                    b.style.borderColor = "#FFB800";
+                    b.style.transform = "scale(1.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    const b = e.currentTarget;
+                    b.style.background = "#0d0d10";
+                    b.style.color = "rgba(255,255,255,0.75)";
+                    b.style.borderColor = "rgba(255,255,255,0.14)";
+                    b.style.transform = "scale(1)";
                   }}
                 >
-                  {videoId ? (
-                    <iframe
-                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
-                      src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white&iv_load_policy=3`}
-                      title={displayTitle}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      referrerPolicy="strict-origin-when-cross-origin"
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "12px",
-                        background: "#080808",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "56px",
-                          height: "56px",
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: "rgba(255,255,255,0.04)",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        <span style={{ fontSize: "22px", color: "rgba(255,255,255,0.2)" }}>▶</span>
-                      </div>
-                      <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.2)", fontWeight: 500 }}>
-                        {isRTL ? "الفيديو غير متاح" : "Video unavailable"}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  <X style={{ width: "18px", height: "18px", strokeWidth: 2.5 }} />
+                </button>
 
-                {/* ── INFO PANEL — scrolls when description is long ── */}
+                {/* ─── CARD ───────────────────────────────────────────
+                    flex-column, max 90vh.
+                    • Video section: flex-shrink 0, strict 16:9
+                    • Info section:  flex 1, min-h 0, scrollable
+                ─────────────────────────────────────────────────────── */}
                 <div
-                  dir={dir}
                   style={{
-                    flex: 1,
-                    minHeight: 0,
-                    overflowY: "auto",
-                    padding: "16px 20px 20px",
-                    background: "rgba(255,255,255,0.014)",
+                    borderRadius: "20px",
+                    overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "10px",
-                    scrollbarWidth: "thin",
-                    scrollbarColor: "rgba(255,184,0,0.25) transparent",
+                    maxHeight: "calc(90vh - 2.5rem)",
+                    boxShadow:
+                      "0 32px 80px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.06)",
+                    background: "#0b0b0e",
                   }}
                 >
-                  {/* Badges row */}
+                  {/* Gold accent line */}
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      height: "2px",
+                      flexShrink: 0,
+                      background:
+                        "linear-gradient(90deg, transparent 0%, #FFB800 50%, transparent 100%)",
+                      opacity: 0.5,
+                    }}
+                  />
+
+                  {/* ── VIDEO — strict 16:9, never shrinks ── */}
                   <div
                     style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "8px",
-                      alignItems: "center",
+                      position: "relative",
+                      width: "100%",
+                      flexShrink: 0,
+                      aspectRatio: "16 / 9",
+                      background: "#000",
                     }}
                   >
-                    {category && (
-                      <span
+                    {videoId ? (
+                      <iframe
                         style={{
-                          display: "inline-flex",
+                          position: "absolute",
+                          inset: 0,
+                          width: "100%",
+                          height: "100%",
+                          border: "none",
+                          display: "block",
+                        }}
+                        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white&iv_load_policy=3`}
+                        title={displayTitle}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        referrerPolicy="strict-origin-when-cross-origin"
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          display: "flex",
+                          flexDirection: "column",
                           alignItems: "center",
-                          gap: "5px",
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.07em",
-                          padding: "4px 10px",
-                          borderRadius: "8px",
-                          color: "#FFB800",
-                          background: "rgba(255,184,0,0.1)",
-                          border: "1px solid rgba(255,184,0,0.22)",
+                          justifyContent: "center",
+                          gap: "14px",
+                          background: "#080808",
                         }}
                       >
-                        <Shield style={{ width: "10px", height: "10px", flexShrink: 0 }} />
-                        {category}
-                      </span>
-                    )}
-                    {duration && (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "5px",
-                          fontSize: "10px",
-                          fontWeight: 500,
-                          padding: "4px 10px",
-                          borderRadius: "8px",
-                          color: "rgba(255,255,255,0.45)",
-                          background: "rgba(255,255,255,0.05)",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        <Clock style={{ width: "10px", height: "10px", flexShrink: 0 }} />
-                        {duration}
-                      </span>
+                        <div
+                          style={{
+                            width: "60px",
+                            height: "60px",
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.09)",
+                          }}
+                        >
+                          <span style={{ fontSize: "24px", color: "rgba(255,255,255,0.18)" }}>▶</span>
+                        </div>
+                        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.22)", fontWeight: 500 }}>
+                          {isRTL ? "الفيديو غير متاح" : "Video unavailable"}
+                        </p>
+                      </div>
                     )}
                   </div>
 
-                  {/* Title */}
-                  <h3
+                  {/* ── INFO PANEL — p-6, scrollable when content is long ── */}
+                  <div
+                    dir={dir}
                     style={{
-                      margin: 0,
-                      fontSize: "15px",
-                      fontWeight: 700,
-                      color: "#fff",
-                      lineHeight: 1.35,
-                      textAlign,
+                      flex: 1,
+                      minHeight: 0,
+                      overflowY: "auto",
+                      padding: "24px",          /* p-6 */
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                      scrollbarWidth: "thin",
+                      scrollbarColor: "rgba(255,184,0,0.3) transparent",
                     }}
                   >
-                    {displayTitle}
-                  </h3>
+                    {/* Badges */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+                      {category && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            padding: "4px 11px",
+                            borderRadius: "8px",
+                            color: "#FFB800",
+                            background: "rgba(255,184,0,0.1)",
+                            border: "1px solid rgba(255,184,0,0.25)",
+                          }}
+                        >
+                          <Shield style={{ width: "10px", height: "10px", flexShrink: 0 }} />
+                          {category}
+                        </span>
+                      )}
+                      {duration && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            fontSize: "10px",
+                            fontWeight: 500,
+                            padding: "4px 11px",
+                            borderRadius: "8px",
+                            color: "rgba(255,255,255,0.5)",
+                            background: "rgba(255,255,255,0.05)",
+                            border: "1px solid rgba(255,255,255,0.09)",
+                          }}
+                        >
+                          <Clock style={{ width: "10px", height: "10px", flexShrink: 0 }} />
+                          {duration}
+                        </span>
+                      )}
+                    </div>
 
-                  {/* Description — visible even when long, panel scrolls */}
-                  {displayDescription && (
-                    <p
+                    {/* Title — bold, primary white, larger */}
+                    <h3
                       style={{
                         margin: 0,
-                        fontSize: "13px",
-                        lineHeight: 1.75,
-                        color: "rgba(255,255,255,0.52)",
+                        fontSize: "18px",
+                        fontWeight: 800,
+                        color: "#ffffff",
+                        lineHeight: 1.3,
                         textAlign,
+                        letterSpacing: isRTL ? "0" : "-0.01em",
                       }}
                     >
-                      {displayDescription}
-                    </p>
-                  )}
+                      {displayTitle}
+                    </h3>
 
-                  {/* Footer */}
-                  <div
-                    style={{
-                      paddingTop: "10px",
-                      borderTop: "1px solid rgba(255,255,255,0.05)",
-                      display: "flex",
-                      justifyContent: isRTL ? "flex-end" : "flex-start",
-                      marginTop: "auto",
-                    }}
-                  >
-                    <span
+                    {/* Description — muted, scrolls inside the panel */}
+                    {displayDescription && (
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "14px",
+                          lineHeight: 1.8,
+                          color: "rgba(255,255,255,0.5)",
+                          textAlign,
+                        }}
+                      >
+                        {displayDescription}
+                      </p>
+                    )}
+
+                    {/* Footer brand line */}
+                    <div
                       style={{
-                        fontSize: "9px",
-                        fontWeight: 500,
-                        letterSpacing: "0.12em",
-                        textTransform: "uppercase",
-                        color: "rgba(255,255,255,0.14)",
-                        userSelect: "none",
+                        paddingTop: "12px",
+                        borderTop: "1px solid rgba(255,255,255,0.05)",
+                        display: "flex",
+                        justifyContent: isRTL ? "flex-end" : "flex-start",
+                        marginTop: "auto",
                       }}
                     >
-                      {isRTL ? "حُراس · منصة الأمن السيبراني" : "Horras · Cybersecurity Platform"}
-                    </span>
+                      <span
+                        style={{
+                          fontSize: "9px",
+                          fontWeight: 600,
+                          letterSpacing: "0.14em",
+                          textTransform: "uppercase",
+                          color: "rgba(255,255,255,0.13)",
+                          userSelect: "none",
+                        }}
+                      >
+                        {isRTL ? "حُراس · منصة الأمن السيبراني" : "Horras · Cybersecurity Platform"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         </>
       )}
