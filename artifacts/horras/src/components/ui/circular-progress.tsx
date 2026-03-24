@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface CircularProgressProps {
@@ -46,8 +46,25 @@ export function HalfCircleGauge({ value, labelAr, labelEn, isRTL = true }: HalfC
   const cx = 100;
   const cy = 106;
   const totalLen = Math.PI * r;
-  const safeValue = Math.min(100, Math.max(0, value));
-  const progressLen = (safeValue / 100) * totalLen;
+  const target = Math.min(100, Math.max(0, value));
+
+  const [animated, setAnimated] = useState(0);
+  useEffect(() => {
+    let frame: number;
+    const start = performance.now();
+    const duration = 1200;
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      setAnimated(Math.round(ease * target));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+
+  const safeValue = animated;
+  const progressLen = (target / 100) * totalLen;
 
   const color =
     safeValue >= 80 ? "#34d399"

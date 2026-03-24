@@ -202,6 +202,7 @@ export default function Learn() {
           title={activeVideo.title}
           url={activeVideo.url}
           category={activeVideo.category}
+          description={activeVideo.description}
         />
       )}
     </div>

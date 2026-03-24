@@ -2,16 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ClipboardCheck, ArrowLeft, ArrowRight, ShieldCheck, Trophy,
-  PlayCircle, BookOpen, AlertTriangle, Play, X
+  ClipboardCheck, ArrowLeft, ArrowRight, ShieldCheck, Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useApp } from "@/context/AppContext";
 import { useLang } from "@/context/LangContext";
-import { api, type ApiVideo } from "@/lib/api";
 import LoginModal from "@/components/LoginModal";
-import VideoModal from "@/components/VideoModal";
 import confetti from "canvas-confetti";
 
 interface Question {
@@ -23,16 +20,6 @@ interface Question {
   category: string;
   categoryAr: string;
 }
-
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "Phishing": ["phishing", "فيشينج", "احتيال", "تصيد", "phish", "رابط مشبوه"],
-  "Password Security": ["password", "كلمة مرور", "كلمات مرور", "passwords", "مرور"],
-  "2FA": ["2fa", "مصادقة", "two-factor", "verification", "ثنائي"],
-  "Public Wi-Fi": ["wifi", "wi-fi", "واي فاي", "شبكة", "network", "vpn", "عامة"],
-  "Social Engineering": ["social engineering", "هندسة اجتماعية", "social", "هندسة", "خداع"],
-  "Privacy": ["privacy", "خصوصية", "تواصل اجتماعي", "social media"],
-  "Software Updates": ["update", "تحديث", "software", "تحديثات", "برامج"],
-};
 
 const QUESTIONS: Question[] = [
   {
@@ -125,18 +112,6 @@ const RECOMMENDATIONS: Record<string, { label: string; labelEn: string; color: s
   },
 };
 
-function videoMatchesCategory(video: ApiVideo, category: string): boolean {
-  const keywords = CATEGORY_KEYWORDS[category] ?? [];
-  const haystack = (video.category + " " + video.title).toLowerCase();
-  return keywords.some((kw) => haystack.includes(kw.toLowerCase()));
-}
-
-function getYouTubeThumbnail(url: string): string {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
-  if (!match) return "https://placehold.co/320x180/111/555?text=Video";
-  return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
-}
-
 export default function SecurityTest() {
   const [, setLocation] = useLocation();
   const { setQuizResults, user } = useApp();
@@ -152,16 +127,7 @@ export default function SecurityTest() {
   const [finalCorrect, setFinalCorrect] = useState(0);
   const [finalScore, setFinalScore] = useState(0);
   const [failedCategories, setFailedCategories] = useState<string[]>([]);
-  const [recommendedVideos, setRecommendedVideos] = useState<ApiVideo[]>([]);
-  const [allVideos, setAllVideos] = useState<ApiVideo[]>([]);
 
-  const [videoModalOpen, setVideoModalOpen] = useState(false);
-  const [activeVideo, setActiveVideo] = useState<ApiVideo | null>(null);
-
-  const [awarenessVideo, setAwarenessVideo] = useState<ApiVideo | null>(null);
-  const [awarenessCategory, setAwarenessCategory] = useState<{ en: string; ar: string } | null>(null);
-  const [awarenessMode, setAwarenessMode] = useState(false);
-  const pendingAdvanceRef = useRef<(() => void) | null>(null);
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
 
@@ -179,39 +145,18 @@ export default function SecurityTest() {
     setAnswersMap({});
     setCurrentQ(0);
     setSelectedOption(null);
-    setAwarenessMode(false);
     clearAutoAdvance();
-    api.videos.list().then(setAllVideos).catch(() => {});
   };
 
-  const doAdvance = (qIndex: number, optionIndex: number, newMap: Record<number, number>) => {
-    const isWrong = optionIndex !== QUESTIONS[qIndex].correct;
-
-    const advance = () => {
-      setSelectedOption(null);
-      if (qIndex < QUESTIONS.length - 1) {
-        const nextQ = qIndex + 1;
-        setCurrentQ(nextQ);
-        setSelectedOption(newMap[nextQ] ?? null);
-      } else {
-        finishQuiz(newMap);
-      }
-    };
-
-    if (isWrong && allVideos.length > 0) {
-      const cat = QUESTIONS[qIndex].category;
-      const catAr = QUESTIONS[qIndex].categoryAr;
-      const matchedVideo = allVideos.find((v) => videoMatchesCategory(v, cat));
-      if (matchedVideo) {
-        setAwarenessVideo(matchedVideo);
-        setAwarenessCategory({ en: cat, ar: catAr });
-        setAwarenessMode(true);
-        pendingAdvanceRef.current = advance;
-        return;
-      }
+  const doAdvance = (qIndex: number, _optionIndex: number, newMap: Record<number, number>) => {
+    setSelectedOption(null);
+    if (qIndex < QUESTIONS.length - 1) {
+      const nextQ = qIndex + 1;
+      setCurrentQ(nextQ);
+      setSelectedOption(newMap[nextQ] ?? null);
+    } else {
+      finishQuiz(newMap);
     }
-
-    advance();
   };
 
   const selectAnswer = (i: number) => {
@@ -229,19 +174,9 @@ export default function SecurityTest() {
   const goBack = () => {
     if (currentQ === 0) return;
     clearAutoAdvance();
-    setAwarenessMode(false);
-    pendingAdvanceRef.current = null;
     const prevQ = currentQ - 1;
     setCurrentQ(prevQ);
     setSelectedOption(answersMap[prevQ] ?? null);
-  };
-
-  const dismissAwareness = () => {
-    setAwarenessMode(false);
-    setAwarenessVideo(null);
-    setAwarenessCategory(null);
-    pendingAdvanceRef.current?.();
-    pendingAdvanceRef.current = null;
   };
 
   useEffect(() => {
@@ -269,19 +204,6 @@ export default function SecurityTest() {
     if (score > 50) {
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#FFB800", "#10B981", "#ffffff"] });
     }
-
-    try {
-      const videos = await api.videos.list();
-      const matched = videos.filter((v) =>
-        uniqueFailed.some((cat) => videoMatchesCategory(v, cat))
-      );
-      setRecommendedVideos(matched);
-    } catch {}
-  };
-
-  const openVideo = (video: ApiVideo) => {
-    setActiveVideo(video);
-    setVideoModalOpen(true);
   };
 
   return (
@@ -340,94 +262,6 @@ export default function SecurityTest() {
               {isRTL ? QUESTIONS[currentQ].categoryAr : QUESTIONS[currentQ].category}
             </span>
           </div>
-
-          {/* Awareness interstitial — shown after a wrong answer */}
-          <AnimatePresence>
-            {awarenessMode && awarenessVideo && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute inset-0 z-30 flex items-center justify-center p-4"
-                style={{ position: "fixed", inset: 0 }}
-              >
-                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={dismissAwareness} />
-                <motion.div
-                  initial={{ y: 30 }}
-                  animate={{ y: 0 }}
-                  exit={{ y: 30 }}
-                  className="relative w-full max-w-sm bg-[#0F0F11] border border-red-500/20 rounded-3xl p-5 shadow-2xl"
-                >
-                  <button
-                    onClick={dismissAwareness}
-                    className="absolute top-3 end-3 p-1.5 rounded-xl text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20">
-                      <AlertTriangle className="w-4 h-4 text-red-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-red-400">
-                        {isRTL ? "إجابة خاطئة!" : "Wrong Answer!"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {isRTL ? `موضوع: ${awarenessCategory?.ar}` : `Topic: ${awarenessCategory?.en}`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                    {isRTL
-                      ? "إليك فيديو توعوي مرتبط بهذا الموضوع. شاهده لتحسين معرفتك."
-                      : "Here's an awareness video related to this topic. Watch it to improve your knowledge."}
-                  </p>
-
-                  <button
-                    onClick={() => openVideo(awarenessVideo)}
-                    className="w-full rounded-2xl overflow-hidden border border-white/10 bg-black/40 group text-start mb-4 hover:border-primary/40 transition-all"
-                  >
-                    <div className="relative">
-                      <img
-                        src={getYouTubeThumbnail(awarenessVideo.url)}
-                        alt={awarenessVideo.title}
-                        className="w-full h-32 object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = "https://placehold.co/320x180/111/555?text=Video";
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center shadow-lg shadow-primary/40 group-hover:scale-110 transition-transform">
-                          <Play className="w-5 h-5 text-black ms-0.5" fill="currentColor" />
-                        </div>
-                      </div>
-                      {awarenessVideo.category && (
-                        <span className="absolute top-2 start-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/70 text-primary border border-primary/30">
-                          {awarenessVideo.category}
-                        </span>
-                      )}
-                    </div>
-                    <div className="px-3 py-2.5">
-                      <p className="text-xs font-semibold leading-snug text-white/90 group-hover:text-primary transition-colors line-clamp-2">
-                        {awarenessVideo.title}
-                      </p>
-                    </div>
-                  </button>
-
-                  <Button
-                    size="sm"
-                    className="w-full rounded-xl font-bold gap-2"
-                    onClick={dismissAwareness}
-                  >
-                    {isRTL ? "استمر في الاختبار" : "Continue Quiz"}
-                    <ArrowBack className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -570,81 +404,18 @@ export default function SecurityTest() {
                 </Button>
                 <Button
                   size="sm" variant="outline" className="rounded-xl px-6 font-bold gap-2"
-                  onClick={() => { setStep("intro"); setCurrentQ(0); setAnswers([]); setSelectedOption(null); setAwarenessMode(false); }}
+                  onClick={() => { setStep("intro"); setCurrentQ(0); setAnswersMap({}); setSelectedOption(null); }}
                 >
                   {isRTL ? "إعادة الاختبار" : "Retake Test"}
                   <ArrowDir className="w-4 h-4" />
                 </Button>
               </div>
             </div>
-
-            {/* Smart Recommendations at end of quiz */}
-            {recommendedVideos.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                className="glass-card rounded-3xl p-5 border border-primary/20 shadow-xl shadow-black/40"
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
-                    <BookOpen className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold">
-                      {isRTL ? "مقترح لك" : "Recommended for You"}
-                    </h3>
-                    <p className="text-[11px] text-muted-foreground">
-                      {isRTL ? "فيديوهات مختارة بناءً على نقاط ضعفك في الاختبار" : "Videos selected based on your quiz weak points"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-hide">
-                  {recommendedVideos.map((video) => (
-                    <button
-                      key={video.id}
-                      onClick={() => openVideo(video)}
-                      className="shrink-0 snap-start w-52 rounded-2xl overflow-hidden border border-white/10 bg-black/40 group hover:border-primary/40 transition-all text-start"
-                    >
-                      <div className="relative">
-                        <img
-                          src={getYouTubeThumbnail(video.url)}
-                          alt={video.title}
-                          className="w-full h-28 object-cover"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = "https://placehold.co/320x180/111/555?text=Video"; }}
-                        />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <PlayCircle className="w-10 h-10 text-primary drop-shadow-lg" />
-                        </div>
-                        {video.category && (
-                          <span className="absolute top-2 start-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/70 text-primary border border-primary/30">
-                            {video.category}
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <p className="text-xs font-semibold leading-snug line-clamp-2 text-white/90 group-hover:text-primary transition-colors">{video.title}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">{video.duration}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
           </motion.div>
         );
       })()}
 
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
-
-      {activeVideo && (
-        <VideoModal
-          isOpen={videoModalOpen}
-          onClose={() => { setVideoModalOpen(false); setActiveVideo(null); }}
-          title={activeVideo.title}
-          url={activeVideo.url}
-          category={activeVideo.category}
-        />
-      )}
     </div>
   );
 }

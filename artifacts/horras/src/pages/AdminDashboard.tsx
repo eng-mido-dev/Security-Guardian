@@ -94,7 +94,8 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<Partial<ApiVideo>>({});
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", url: "", category: "", duration: "" });
+  const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", url: "", category: "", duration: "", description: "" });
+  const [titleFetching, setTitleFetching] = useState(false);
   const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users">("videos");
   const [durationFetching, setDurationFetching] = useState(false);
   const cancelFetchRef = useRef<(() => void) | null>(null);
@@ -165,6 +166,26 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchYouTubeTitle = useCallback(async (url: string, target: "new" | "edit") => {
+    try {
+      setTitleFetching(true);
+      const oEmbedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      const res = await fetch(oEmbedUrl);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.title) {
+        if (target === "new") {
+          setNewVideo((p) => (p.title ? p : { ...p, title: data.title }));
+        } else {
+          setEditData((p) => (p.title ? p : { ...p, title: data.title }));
+        }
+      }
+    } catch {
+    } finally {
+      setTitleFetching(false);
+    }
+  }, []);
+
   const handleUrlChange = useCallback(
     (url: string, target: "new" | "edit") => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -175,10 +196,13 @@ export default function AdminDashboard() {
       }
       const videoId = extractYouTubeId(url);
       if (videoId) {
-        debounceRef.current = setTimeout(() => fetchDuration(url, target), 800);
+        debounceRef.current = setTimeout(() => {
+          fetchDuration(url, target);
+          fetchYouTubeTitle(url, target);
+        }, 800);
       }
     },
-    [fetchDuration]
+    [fetchDuration, fetchYouTubeTitle]
   );
 
   const saveEdit = async (id: number) => {
@@ -211,9 +235,10 @@ export default function AdminDashboard() {
         url: newVideo.url || "",
         category: newVideo.category || "",
         duration: newVideo.duration || "60s",
+        description: newVideo.description || "",
       });
       setVideos((vs) => [...vs, video]);
-      setNewVideo({ title: "", url: "", category: "", duration: "" });
+      setNewVideo({ title: "", url: "", category: "", duration: "", description: "" });
       setIsAddingNew(false);
       toast({ title: isRTL ? "تم إضافة الفيديو" : "Video added" });
     } catch {
@@ -316,8 +341,16 @@ export default function AdminDashboard() {
                     <h4 className="font-bold text-primary text-sm">{isRTL ? "فيديو جديد" : "New Video"}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">{isRTL ? "العنوان" : "Title"}</Label>
-                        <Input value={newVideo.title} onChange={(e) => setNewVideo((p) => ({ ...p, title: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                        <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                          {isRTL ? "العنوان" : "Title"}
+                          {titleFetching && (
+                            <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              {isRTL ? "جلب العنوان تلقائياً..." : "Auto-fetching title..."}
+                            </span>
+                          )}
+                        </Label>
+                        <Input value={newVideo.title} onChange={(e) => setNewVideo((p) => ({ ...p, title: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" placeholder={titleFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : ""} readOnly={titleFetching} />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
@@ -362,6 +395,16 @@ export default function AdminDashboard() {
                           />
                         </div>
                       </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
+                      <textarea
+                        value={newVideo.description || ""}
+                        onChange={(e) => setNewVideo((p) => ({ ...p, description: e.target.value }))}
+                        rows={2}
+                        placeholder={isRTL ? "وصف قصير عن محتوى الفيديو..." : "Short description about the video content..."}
+                        className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                      />
                     </div>
                     <div className="flex gap-3 justify-end">
                       <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setIsAddingNew(false); cancelFetchRef.current?.(); }}><X className="w-4 h-4" /></Button>
@@ -411,6 +454,16 @@ export default function AdminDashboard() {
                           <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">{isRTL ? "التصنيف" : "Category"}</Label>
                             <Input value={editData.category ?? video.category} onChange={(e) => setEditData((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                          </div>
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <Label className="text-xs text-muted-foreground">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
+                            <textarea
+                              value={editData.description ?? (video.description || "")}
+                              onChange={(e) => setEditData((p) => ({ ...p, description: e.target.value }))}
+                              rows={2}
+                              placeholder={isRTL ? "وصف قصير عن محتوى الفيديو..." : "Short description about the video content..."}
+                              className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                            />
                           </div>
                           <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground flex items-center gap-2">

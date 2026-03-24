@@ -61,6 +61,7 @@ export interface ApiVideo {
   url: string;
   category: string;
   duration: string;
+  description: string;
   createdAt: string;
 }
 

@@ -17,6 +17,7 @@ export const videosTable = pgTable("videos", {
   url: text("url").notNull().default(""),
   category: text("category").notNull().default(""),
   duration: text("duration").notNull().default("60s"),
+  description: text("description").notNull().default(""),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

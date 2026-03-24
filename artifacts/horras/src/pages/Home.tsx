@@ -96,10 +96,47 @@ function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: b
 }
 
 
+const TYPING_WORDS_AR = ["من الاحتيال الإلكتروني", "من التصيد الاحتيالي", "من سرقة البيانات", "من الهجمات السيبرانية"];
+const TYPING_WORDS_EN = ["from Online Fraud", "from Phishing Attacks", "from Data Theft", "from Cyber Attacks"];
+
+function useTypingEffect(words: string[], speed = 70, pause = 1800) {
+  const [display, setDisplay] = useState("");
+  const [wordIdx, setWordIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const current = words[wordIdx];
+    let delay = deleting ? speed / 2 : speed;
+    if (!deleting && charIdx === current.length) delay = pause;
+    if (deleting && charIdx === 0) delay = 300;
+
+    const t = setTimeout(() => {
+      if (!deleting && charIdx < current.length) {
+        setDisplay(current.slice(0, charIdx + 1));
+        setCharIdx((c) => c + 1);
+      } else if (!deleting && charIdx === current.length) {
+        setDeleting(true);
+      } else if (deleting && charIdx > 0) {
+        setDisplay(current.slice(0, charIdx - 1));
+        setCharIdx((c) => c - 1);
+      } else {
+        setDeleting(false);
+        setWordIdx((i) => (i + 1) % words.length);
+      }
+    }, delay);
+    return () => clearTimeout(t);
+  }, [charIdx, deleting, wordIdx, words, speed, pause]);
+
+  return display;
+}
+
 export default function Home() {
   const [, setLocation] = useLocation();
   const { t, isRTL } = useLang();
   const ChevronDir = isRTL ? ChevronLeft : ChevronRight;
+  const typingWords = isRTL ? TYPING_WORDS_AR : TYPING_WORDS_EN;
+  const typedText = useTypingEffect(typingWords);
 
   const [videoCards, setVideoCards] = useState<VideoCardData[]>([]);
 
@@ -157,10 +194,13 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.05 }}
-              className="text-5xl md:text-7xl font-black tracking-tight mb-6 leading-tight"
+              className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight mb-6 leading-tight"
             >
               {t("hero.title1")}{" "}
-              <span className="gold-gradient-text">{t("hero.title2")}</span>
+              <span className="gold-gradient-text block sm:inline">
+                {typedText || "\u00A0"}
+                <span className="inline-block w-[3px] h-[0.85em] bg-primary ms-1 align-middle animate-pulse rounded-sm" />
+              </span>
             </motion.h1>
 
             <motion.p

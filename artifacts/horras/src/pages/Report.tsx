@@ -344,7 +344,7 @@ export default function Report() {
                   value={urlValue}
                   onChange={(e) => setUrlValue(e.target.value)}
                   placeholder="https://..."
-                  className="h-12 px-12 rounded-xl bg-black/40 border-white/10 focus:border-primary/60 focus-visible:ring-1 focus-visible:ring-primary/40"
+                  className="h-12 px-12 rounded-xl bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-primary/60 focus-visible:ring-1 focus-visible:ring-primary/40"
                   style={{ direction: "ltr", textAlign: "left" }}
                 />
               </div>
@@ -358,7 +358,7 @@ export default function Report() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t("report.descPlaceholder")}
-                className="min-h-[120px] rounded-xl bg-black/40 border-white/10 resize-none p-4 focus:border-primary/60 focus-visible:ring-1 focus-visible:ring-primary/40"
+                className="min-h-[120px] rounded-xl bg-black/40 border-white/10 text-white placeholder:text-white/30 resize-none p-4 focus:border-primary/60 focus-visible:ring-1 focus-visible:ring-primary/40"
               />
             </div>
 

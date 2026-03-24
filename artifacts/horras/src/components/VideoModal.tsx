@@ -9,6 +9,7 @@ interface VideoModalProps {
   title: string;
   url: string;
   category?: string;
+  description?: string;
 }
 
 function getYouTubeId(url: string): string | null {
@@ -18,7 +19,7 @@ function getYouTubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function VideoModal({ isOpen, onClose, title, url, category }: VideoModalProps) {
+export default function VideoModal({ isOpen, onClose, title, url, category, description }: VideoModalProps) {
   const { isRTL } = useLang();
   const videoId = getYouTubeId(url);
 
@@ -58,16 +59,19 @@ export default function VideoModal({ isOpen, onClose, title, url, category }: Vi
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="relative w-full max-w-3xl bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
           >
-            <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-white/10">
-              <div className={`flex flex-col ${isRTL ? "items-end" : "items-start"}`}>
+            <div className={`flex items-start justify-between gap-3 px-5 py-4 border-b border-white/10 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <div className={`flex flex-col flex-1 ${isRTL ? "items-end text-right" : "items-start text-left"}`}>
                 <h3 className="text-sm font-bold text-white leading-snug">{title}</h3>
                 {category && (
                   <span className="text-xs text-primary/80 font-medium mt-0.5">{category}</span>
                 )}
+                {description && (
+                  <p className="text-xs text-white/50 leading-relaxed mt-1.5 max-w-lg">{description}</p>
+                )}
               </div>
               <button
                 onClick={onClose}
-                className="shrink-0 p-1.5 rounded-xl text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+                className="shrink-0 p-1.5 rounded-xl text-muted-foreground hover:text-white hover:bg-white/10 transition-colors mt-0.5"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />

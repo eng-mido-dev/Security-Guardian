@@ -242,34 +242,42 @@ export default function Dashboard() {
             </div>
 
             <div className="p-4">
-              <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-hide">
+              <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
                 {reminderVideos.map((video) => (
                   <button
                     key={video.id}
                     onClick={() => { setActiveVideo(video); setVideoModalOpen(true); }}
-                    className="shrink-0 snap-start w-48 rounded-xl overflow-hidden border border-white/10 bg-black/40 group hover:border-amber-400/40 transition-all text-start"
+                    className="shrink-0 snap-start w-56 rounded-2xl overflow-hidden border border-white/10 bg-[#0D0D0F] group hover:border-amber-400/40 hover:shadow-lg hover:shadow-amber-500/5 transition-all text-start"
                   >
                     <div className="relative">
                       <img
                         src={getYouTubeThumbnail(video.url)}
                         alt={video.title}
-                        className="w-full h-24 object-cover"
+                        className="w-full h-[112px] object-cover transition-transform duration-300 group-hover:scale-105"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src =
-                            "https://placehold.co/320x180/111/555?text=Video";
+                            "https://placehold.co/320x180/0D0D0F/555?text=Video";
                         }}
                       />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <PlayCircle className="w-8 h-8 text-amber-400 drop-shadow-lg" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center shadow-xl shadow-amber-400/30">
+                          <PlayCircle className="w-5 h-5 text-black" />
+                        </div>
                       </div>
+                      {video.duration && (
+                        <span className="absolute bottom-2 end-2 text-[10px] font-bold bg-black/80 text-white px-1.5 py-0.5 rounded-md backdrop-blur-sm">
+                          {video.duration}
+                        </span>
+                      )}
                     </div>
-                    <div className="p-2.5">
-                      <p className="text-xs font-semibold leading-snug line-clamp-2 text-white/90 group-hover:text-amber-300 transition-colors">
+                    <div className="px-3 py-2.5">
+                      {video.category && (
+                        <span className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider">{video.category}</span>
+                      )}
+                      <p className="text-xs font-semibold leading-snug line-clamp-2 text-white/90 group-hover:text-amber-300 transition-colors mt-0.5">
                         {video.title}
                       </p>
-                      {video.category && (
-                        <span className="text-[10px] text-primary/70 mt-0.5 block">{video.category}</span>
-                      )}
                     </div>
                   </button>
                 ))}
@@ -396,6 +404,7 @@ export default function Dashboard() {
           title={activeVideo.title}
           url={activeVideo.url}
           category={activeVideo.category}
+          description={activeVideo.description}
         />
       )}
     </div>

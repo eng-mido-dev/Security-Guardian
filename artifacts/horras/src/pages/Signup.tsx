@@ -108,9 +108,10 @@ export default function Signup() {
               <Input
                 id="name"
                 type="text"
+                autoComplete="off"
                 value={name}
                 onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.name ? "border-destructive" : "border-white/10"}`}
+                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.name ? "border-destructive" : "border-white/10"} focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:border-primary/50`}
               />
             </div>
             <AnimatePresence>
@@ -128,11 +129,13 @@ export default function Signup() {
               <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
                 id="email"
-                type="email"
-                autoComplete="off"
+                type="text"
+                inputMode="email"
+                autoComplete="new-password"
+                list="no-autocomplete-email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.email ? "border-destructive" : "border-white/10"}`}
+                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.email ? "border-destructive" : "border-white/10"} focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:border-primary/50`}
               />
             </div>
             <AnimatePresence>
@@ -178,19 +181,22 @@ export default function Signup() {
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">{t("signup.confirmPassword")}</Label>
             <div className="relative" dir="ltr">
-              <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
+              <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors z-10">
                 {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
-              {confirmPassword && confirmPassword === password && (
-                <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
-              )}
               <Input
                 id="confirmPassword"
                 type={showConfirm ? "text" : "password"}
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, confirmPassword: undefined })); }}
-                className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.confirmPassword ? "border-destructive" : confirmPassword && confirmPassword === password ? "border-emerald-400/50" : "border-white/10"}`}
+                className={`h-12 rounded-xl bg-black/40 pr-10 focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:border-primary/50 ${errors.confirmPassword ? "border-destructive" : "border-white/10"}`}
               />
+              {confirmPassword && confirmPassword === password && !errors.confirmPassword && (
+                <div className="absolute end-12 top-1/2 -translate-y-1/2 flex items-center gap-1 text-emerald-400 text-xs font-medium pointer-events-none">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+              )}
             </div>
             <AnimatePresence>
               {errors.confirmPassword && (

@@ -34,7 +34,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "gate.close": "إغلاق",
     "nav.logout": "تسجيل الخروج",
     // Hero
-    "hero.title1": "احمِ نفسك من",
+    "hero.title1": "احمِ نفسك",
     "hero.title2": "الاحتيال الإلكتروني",
     "hero.subtitle": "منصة حُراس توفر لك الأدوات والمعرفة اللازمة لتصفح الإنترنت بأمان. اختبر أمانك، افحص الروابط، وتعلّم كيف تحمي بياناتك.",
     "hero.checkLink": "افحص رابطاً",
@@ -209,7 +209,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "gate.close": "Close",
     "nav.logout": "Logout",
     // Hero
-    "hero.title1": "Protect Yourself from",
+    "hero.title1": "Protect Yourself",
     "hero.title2": "Online Fraud",
     "hero.subtitle": "Horras gives you the tools and knowledge to browse the internet safely. Test your security, check links, and learn how to protect your data.",
     "hero.checkLink": "Check a Link",
