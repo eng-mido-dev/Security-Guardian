@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { useLang } from "@/context/LangContext";
 import { api, type ApiVideo, type ScanHistoryItem } from "@/lib/api";
@@ -9,7 +9,7 @@ import VideoModal from "@/components/VideoModal";
 import {
   ShieldCheck, Target, Link2, CheckSquare, Bell,
   ArrowLeft, ArrowRight, ClipboardCheck, Search, Calendar,
-  BookOpen, AlertTriangle, ShieldAlert
+  BookOpen, AlertTriangle, ShieldAlert, PlayCircle, ChevronLeft, ChevronRight
 } from "lucide-react";
 import VideoCard from "@/components/VideoCard";
 import { Button } from "@/components/ui/button";
@@ -49,9 +49,12 @@ export default function Dashboard() {
   const ArrowDir = isRTL ? ArrowLeft : ArrowRight;
 
   const [reminderVideos, setReminderVideos] = useState<ApiVideo[]>([]);
+  const [allVideos, setAllVideos] = useState<ApiVideo[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>("");
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [activeVideo, setActiveVideo] = useState<ApiVideo | null>(null);
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isLoading && !user) setLocation("/login");
@@ -60,6 +63,18 @@ export default function Dashboard() {
   useEffect(() => {
     if (user && !isAdmin) {
       api.scan.history().then(setScanHistory).catch(() => {});
+    }
+  }, [user, isAdmin]);
+
+  useEffect(() => {
+    if (user && !isAdmin) {
+      api.videos.list().then((videos) => {
+        setAllVideos(videos);
+        const cats = Array.from(
+          new Set(videos.map((v) => v.category?.trim()).filter(Boolean))
+        ) as string[];
+        if (cats.length > 0 && !activeCategory) setActiveCategory(cats[0]);
+      }).catch(() => {});
     }
   }, [user, isAdmin]);
 
@@ -260,6 +275,134 @@ export default function Dashboard() {
           </div>
         </motion.div>
       )}
+
+      {/* ── Category Video Browser ─────────────────────────────── */}
+      {(() => {
+        const categories = Array.from(
+          new Set(allVideos.map((v) => v.category?.trim()).filter(Boolean))
+        ) as string[];
+
+        if (categories.length === 0) return null;
+
+        const catLabel = (cat: string) =>
+          isRTL ? (CATEGORY_LABELS_AR[cat] ?? cat) : cat;
+
+        const videosInTab = allVideos.filter(
+          (v) => v.category?.trim() === activeCategory
+        );
+
+        const scrollTabs = (dir: "left" | "right") => {
+          const el = tabsScrollRef.current;
+          if (!el) return;
+          el.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
+        };
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="mb-8"
+          >
+            {/* Section header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <PlayCircle className="w-4 h-4 text-primary" />
+                {isRTL ? "فيديوهات التعلم" : "Learning Videos"}
+              </h3>
+              <button
+                onClick={() => setLocation("/learn")}
+                className="text-xs text-primary/70 hover:text-primary transition-colors flex items-center gap-1 font-medium"
+              >
+                {isRTL ? "عرض الكل" : "View All"}
+                <ArrowDir className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Scrollable category tabs */}
+            <div className="relative mb-5">
+              {/* Left/right nudge arrows (decorative scroll helpers) */}
+              <button
+                onClick={() => scrollTabs(isRTL ? "right" : "left")}
+                className="absolute start-0 top-1/2 -translate-y-1/2 z-10 hidden sm:flex w-7 h-7 items-center justify-center rounded-full bg-black/60 border border-white/10 text-white/50 hover:text-white hover:bg-black/80 transition-all"
+                aria-hidden="true"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => scrollTabs(isRTL ? "left" : "right")}
+                className="absolute end-0 top-1/2 -translate-y-1/2 z-10 hidden sm:flex w-7 h-7 items-center justify-center rounded-full bg-black/60 border border-white/10 text-white/50 hover:text-white hover:bg-black/80 transition-all"
+                aria-hidden="true"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              <div
+                ref={tabsScrollRef}
+                className="flex gap-2 overflow-x-auto scrollbar-none px-1 sm:px-8"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {categories.map((cat) => {
+                  const isActive = cat === activeCategory;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={[
+                        "shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all border whitespace-nowrap",
+                        isActive
+                          ? "bg-primary/15 border-primary text-primary shadow-[0_0_12px_rgba(255,184,0,0.18)]"
+                          : "bg-black/30 border-white/10 text-white/50 hover:text-white hover:border-white/25 hover:bg-white/5",
+                      ].join(" ")}
+                    >
+                      {catLabel(cat)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Video grid for active category */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeCategory}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+              >
+                {videosInTab.length === 0 ? (
+                  <div className="glass-card rounded-2xl border-white/5 px-6 py-14 flex flex-col items-center gap-3 text-center">
+                    <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                      <PlayCircle className="w-5 h-5 text-white/20" />
+                    </div>
+                    <p className="text-sm font-bold text-white/30">
+                      {isRTL ? "قريباً" : "Coming Soon"}
+                    </p>
+                    <p className="text-xs text-white/20">
+                      {isRTL
+                        ? "لا توجد فيديوهات في هذا القسم بعد"
+                        : "No videos in this section yet"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {videosInTab.map((video, i) => (
+                      <VideoCard
+                        key={video.id}
+                        video={video}
+                        isRTL={isRTL}
+                        index={i}
+                        onClick={() => { setActiveVideo(video); setVideoModalOpen(true); }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        );
+      })()}
 
       {/* Scan History */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }} className="mb-8">
