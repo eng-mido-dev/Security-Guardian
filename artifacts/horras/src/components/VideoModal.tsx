@@ -73,10 +73,9 @@ export default function VideoModal({
           {/* ═══════════════════════════════════════════════════════════
               BACKDROP — z-index 10000
               ▸ position:fixed + inset:0 → covers EVERY pixel including
-                the sticky Header (z-50 / z-100) and any dropdown.
-              ▸ pointerEvents:all makes sure the header is completely
+                the sticky Header and any dropdown.
+              ▸ pointerEvents:all makes the header completely
                 non-interactive while the modal is open.
-              ▸ backdrop-blur(20px) + rgba(0,0,0,0.88) → strong dim.
           ═══════════════════════════════════════════════════════════ */}
           <motion.div
             key="vm-backdrop"
@@ -98,11 +97,66 @@ export default function VideoModal({
           />
 
           {/* ═══════════════════════════════════════════════════════════
+              FIXED CLOSE BUTTON — z-index 10002
+              ▸ position:fixed → always within viewport, never off-screen
+              ▸ env(safe-area-inset-*) → respects iPhone notch / status bar
+              ▸ 52×52px → comfortable tap target on mobile
+              ▸ Above scroll shell (10001) and backdrop (10000)
+          ═══════════════════════════════════════════════════════════ */}
+          <motion.button
+            key="vm-close"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.18, delay: 0.05 }}
+            onClick={onClose}
+            aria-label={isRTL ? "إغلاق الفيديو" : "Close video"}
+            style={{
+              position: "fixed",
+              top: "max(16px, env(safe-area-inset-top, 0px) + 12px)",
+              right: "max(16px, env(safe-area-inset-right, 0px) + 12px)",
+              zIndex: 10002,
+              width: "52px",
+              height: "52px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              background: "rgba(10,10,10,0.95)",
+              border: "2px solid rgba(255,255,255,0.18)",
+              color: "rgba(255,255,255,0.85)",
+              cursor: "pointer",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              boxShadow: "0 8px 28px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)",
+              transition: "background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s",
+              touchAction: "manipulation",
+            }}
+            onMouseEnter={(e) => {
+              const b = e.currentTarget;
+              b.style.background = "#FFB800";
+              b.style.color = "#000";
+              b.style.borderColor = "#FFB800";
+              b.style.transform = "scale(1.1) rotate(90deg)";
+              b.style.boxShadow = "0 8px 32px rgba(255,184,0,0.55)";
+            }}
+            onMouseLeave={(e) => {
+              const b = e.currentTarget;
+              b.style.background = "rgba(10,10,10,0.95)";
+              b.style.color = "rgba(255,255,255,0.85)";
+              b.style.borderColor = "rgba(255,255,255,0.18)";
+              b.style.transform = "scale(1) rotate(0deg)";
+              b.style.boxShadow = "0 8px 28px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)";
+            }}
+          >
+            <X style={{ width: "20px", height: "20px", strokeWidth: 2.5 }} />
+          </motion.button>
+
+          {/* ═══════════════════════════════════════════════════════════
               SCROLL SHELL — z-index 10001
               outer div  → scrollable when card is taller than viewport
               inner div  → flex-center when card fits the viewport
-              Generous top padding keeps close button well clear of
-              the mobile status bar / notch.
           ═══════════════════════════════════════════════════════════ */}
           <div
             style={{
@@ -119,8 +173,6 @@ export default function VideoModal({
                 alignItems: "center",
                 justifyContent: "center",
                 minHeight: "100%",
-                /* clamp ensures ≥ 40px top space so the close button
-                   never dips into the browser status bar on mobile */
                 padding: "clamp(2.5rem, 6vw, 4rem) clamp(1rem, 4vw, 2rem)",
                 boxSizing: "border-box",
               }}
@@ -135,55 +187,10 @@ export default function VideoModal({
                 onClick={(e) => e.stopPropagation()}
                 style={{
                   position: "relative",
-                  /* 95 vw on mobile, 900px max on desktop */
                   width: "min(95vw, 900px)",
                   flex: "0 0 auto",
                 }}
               >
-                {/* ─── FLOATING CLOSE BUTTON — always visible, never inside scrollable area ─── */}
-                <button
-                  onClick={onClose}
-                  aria-label={isRTL ? "إغلاق الفيديو" : "Close video"}
-                  style={{
-                    position: "absolute",
-                    top: "-18px",
-                    right: "-18px",
-                    zIndex: 10,
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    background: "rgba(10,10,10,0.95)",
-                    border: "2px solid rgba(255,255,255,0.15)",
-                    color: "rgba(255,255,255,0.8)",
-                    cursor: "pointer",
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
-                    transition: "background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s",
-                  }}
-                  onMouseEnter={(e) => {
-                    const b = e.currentTarget;
-                    b.style.background = "#FFB800";
-                    b.style.color = "#000";
-                    b.style.borderColor = "#FFB800";
-                    b.style.transform = "scale(1.1) rotate(90deg)";
-                    b.style.boxShadow = "0 8px 32px rgba(255,184,0,0.5)";
-                  }}
-                  onMouseLeave={(e) => {
-                    const b = e.currentTarget;
-                    b.style.background = "rgba(10,10,10,0.95)";
-                    b.style.color = "rgba(255,255,255,0.8)";
-                    b.style.borderColor = "rgba(255,255,255,0.15)";
-                    b.style.transform = "scale(1) rotate(0deg)";
-                    b.style.boxShadow = "0 8px 24px rgba(0,0,0,0.6)";
-                  }}
-                >
-                  <X style={{ width: "20px", height: "20px", strokeWidth: 2.5 }} />
-                </button>
                 {/* ─── CARD ─────────────────────────────────────────────
                     rounded-3xl (24px), max 90 vh.
                     • Video wrapper: flex-shrink 0, strict 16:9
@@ -292,8 +299,8 @@ export default function VideoModal({
                       display: "flex",
                       flexDirection: "column",
                       gap: "0",
-                      scrollbarWidth: "thin",
-                      scrollbarColor: "rgba(255,184,0,0.3) transparent",
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
                       position: "relative",
                     }}
                   >
@@ -351,7 +358,6 @@ export default function VideoModal({
                         )}
                       </div>
 
-                      {/* Close button is floating above the card — see card wrapper */}
                     </div>
 
                     {/* ── Title — text-2xl (24px), primary gold ── */}

@@ -209,3 +209,18 @@ input:-webkit-autofill:active {
   caret-color: white;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* ── Global scrollbar removal ─────────────────────────────────────────────────
+   Hides the visual scrollbar track on all browsers while keeping
+   scroll behaviour fully intact.
+   Firefox  : scrollbar-width none
+   IE/Edge  : -ms-overflow-style none
+   Chrome / Safari / Brave : ::-webkit-scrollbar { display: none }
+────────────────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
