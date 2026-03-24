@@ -14,6 +14,7 @@ import {
 import VideoCard from "@/components/VideoCard";
 import { Button } from "@/components/ui/button";
 import AdminDashboard from "./AdminDashboard";
+import { DashboardShell } from "@/components/DashboardShell";
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "Phishing": ["phishing", "فيشينج", "احتيال", "تصيد", "phish", "رابط مشبوه"],
@@ -133,11 +134,12 @@ export default function Dashboard() {
   const recommendations = getRecommendations();
 
   return (
+    <DashboardShell>
     <div className="max-w-5xl mx-auto px-4 py-8 md:py-12 w-full">
       {/* Welcome */}
       <div className="mb-8">
-        <h1 className="text-3xl font-black">{t("dashboard.greeting")} {user.name} 👋</h1>
-        <p className="text-muted-foreground mt-1">{t("dashboard.subtitle")}</p>
+        <h1 className="text-2xl font-black">{t("dashboard.greeting")} {user.name} 👋</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{t("dashboard.subtitle")}</p>
       </div>
 
       {/* Score + Profile */}
@@ -470,5 +472,6 @@ export default function Dashboard() {
         />
       )}
     </div>
+    </DashboardShell>
   );
 }

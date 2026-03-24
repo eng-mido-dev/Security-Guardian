@@ -21,7 +21,7 @@ const NAV_MORE = [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, logout } = useApp();
+  const { user, isAdmin, logout, isLoading } = useApp();
   const { t, lang, toggleLang, isRTL } = useLang();
   const [location, setLocation] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -75,6 +75,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const isActive = (path: string) => location === path;
   const allNav = [...NAV_PRIMARY, ...NAV_MORE];
+
+  // Hand off to DashboardShell for logged-in non-admin users on /dashboard
+  // (after all hooks are declared to follow rules of hooks)
+  if (location === "/dashboard" && !!user && !isAdmin && !isLoading) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
