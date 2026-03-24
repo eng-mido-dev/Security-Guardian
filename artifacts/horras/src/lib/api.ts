@@ -97,6 +97,18 @@ export interface ScanHistoryItem {
   scannedAt: string;
 }
 
+export interface ApiReport {
+  id: number;
+  userId: number;
+  userEmail: string;
+  fraudType: string;
+  url: string;
+  description: string;
+  isAnonymous: string;
+  status: "pending" | "resolved";
+  submittedAt: string;
+}
+
 export const api = {
   auth: {
     register: (name: string, email: string, password: string) =>
@@ -141,5 +153,15 @@ export const api = {
     check: (url: string) =>
       request<ScanReport>("/scan", { method: "POST", body: JSON.stringify({ url }) }),
     history: () => request<ScanHistoryItem[]>("/scan/history"),
+  },
+
+  reports: {
+    submit: (data: { fraudType: string; url?: string; description?: string; isAnonymous?: boolean }) =>
+      request<{ id: number; message: string }>("/reports", { method: "POST", body: JSON.stringify(data) }),
+    list: () => request<ApiReport[]>("/reports"),
+    resolve: (id: number) =>
+      request<ApiReport>(`/reports/${id}/resolve`, { method: "PATCH" }),
+    delete: (id: number) =>
+      request<{ ok: boolean }>(`/reports/${id}`, { method: "DELETE" }),
   },
 };

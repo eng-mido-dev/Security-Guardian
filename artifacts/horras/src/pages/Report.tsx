@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle, UploadCloud, ShieldAlert, CheckCircle2, X,
-  Loader2, ChevronDown, LogIn, UserPlus, Shield,
+  Loader2, ChevronDown, LogIn, UserPlus, Shield, Link2,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useLang } from "@/context/LangContext";
 import { useLocation } from "wouter";
+import { api } from "@/lib/api";
 
 interface UploadedFile {
   name: string;
@@ -123,10 +124,14 @@ export default function Report() {
   const { user } = useApp();
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [fraudType, setFraudType] = useState("");
   const [fraudTypeError, setFraudTypeError] = useState(false);
+  const [urlValue, setUrlValue] = useState("");
+  const [description, setDescription] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -182,15 +187,39 @@ export default function Report() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fraudType) { setFraudTypeError(true); return; }
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await api.reports.submit({
+        fraudType,
+        url: urlValue,
+        description,
+        isAnonymous,
+      });
       setSubmitted(true);
       toast({ title: t("report.received"), description: t("report.receivedDesc") });
-    }, 1500);
+    } catch {
+      toast({
+        title: isRTL ? "فشل إرسال البلاغ" : "Report submission failed",
+        description: isRTL ? "حدث خطأ. حاول مرة أخرى." : "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setSubmitted(false);
+    setFraudType("");
+    setUrlValue("");
+    setDescription("");
+    setIsAnonymous(false);
+    setUploadedFile(null);
+    setUploadDone(false);
+    setFraudTypeError(false);
   };
 
   if (submitted) {
@@ -202,7 +231,12 @@ export default function Report() {
           </div>
           <h2 className="text-3xl font-black mb-4">{t("report.successTitle")}</h2>
           <p className="text-muted-foreground text-lg mb-8">{t("report.successDesc")}</p>
-          <Button size="lg" className="rounded-xl font-bold" onClick={() => { setSubmitted(false); setFraudType(""); setUploadedFile(null); setUploadDone(false); }}>
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-5 py-4 mb-8 text-sm text-emerald-300">
+            {isRTL
+              ? "✓ تم حفظ بلاغك في قاعدة البيانات وسيُراجعه الفريق قريباً."
+              : "✓ Your report has been saved to the database and will be reviewed by our team shortly."}
+          </div>
+          <Button size="lg" className="rounded-xl font-bold" onClick={resetForm}>
             {t("report.another")}
           </Button>
         </motion.div>
@@ -230,7 +264,6 @@ export default function Report() {
           animate={{ opacity: 1, y: 0 }}
           className="glass-card rounded-[2rem] overflow-hidden border-white/5 relative"
         >
-          {/* Blurred form silhouette behind */}
           <div className="p-8 blur-sm pointer-events-none select-none opacity-40 space-y-5">
             <div className="h-10 bg-white/5 rounded-xl" />
             <div className="h-10 bg-white/5 rounded-xl" />
@@ -239,7 +272,6 @@ export default function Report() {
             <div className="h-12 bg-white/5 rounded-xl" />
           </div>
 
-          {/* Gate overlay */}
           <div className="absolute inset-0 flex items-center justify-center p-6">
             <motion.div
               initial={{ scale: 0.92, opacity: 0 }}
@@ -247,7 +279,6 @@ export default function Report() {
               transition={{ delay: 0.1, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="w-full max-w-sm bg-[#0A0A0A]/90 backdrop-blur-2xl border border-primary/25 rounded-3xl p-8 text-center shadow-2xl shadow-black/60"
             >
-              {/* Accent line */}
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-t-3xl" />
 
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/25 mb-6 mx-auto">
@@ -264,20 +295,11 @@ export default function Report() {
               </p>
 
               <div className="flex flex-col gap-3">
-                <Button
-                  size="lg"
-                  className="w-full rounded-xl font-bold gap-2"
-                  onClick={() => setLocation("/login")}
-                >
+                <Button size="lg" className="w-full rounded-xl font-bold gap-2" onClick={() => setLocation("/login")}>
                   <LogIn className="w-4 h-4" />
                   {isRTL ? "تسجيل الدخول" : "Sign In"}
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full rounded-xl font-bold gap-2 border-white/10 hover:bg-white/5"
-                  onClick={() => setLocation("/signup")}
-                >
+                <Button size="lg" variant="outline" className="w-full rounded-xl font-bold gap-2 border-white/10 hover:bg-white/5" onClick={() => setLocation("/signup")}>
                   <UserPlus className="w-4 h-4" />
                   {isRTL ? "إنشاء حساب جديد" : "Create Account"}
                 </Button>
@@ -286,11 +308,10 @@ export default function Report() {
           </div>
         </motion.div>
       ) : (
-        /* --- Report Form (logged-in users only) --- */
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="glass-card rounded-3xl p-6 md:p-8 border-white/5">
           <form onSubmit={handleSubmit} className="space-y-6">
 
-            {/* Fraud Type — Custom Dropdown */}
+            {/* Fraud Type */}
             <div className="space-y-2">
               <Label className="text-base font-bold">
                 {t("report.fraudType")} <span className="text-destructive">*</span>
@@ -305,26 +326,28 @@ export default function Report() {
               />
               <AnimatePresence>
                 {fraudTypeError && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className="text-destructive text-xs"
-                  >
+                  <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-destructive text-xs">
                     {t("report.fraudTypeRequired")}
                   </motion.p>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* URL */}
+            {/* URL — with icon and px-12 padding to prevent overlap */}
             <div className="space-y-2">
               <Label htmlFor="url" className="text-base font-bold">{t("report.suspiciousUrl")}</Label>
-              <Input
-                id="url"
-                type="url"
-                placeholder="https://..."
-                className="h-12 rounded-xl bg-black/40 border-white/10 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
-                style={{ direction: "ltr", textAlign: "left" }}
-              />
+              <div className="relative" dir="ltr">
+                <Link2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                <Input
+                  id="url"
+                  type="text"
+                  value={urlValue}
+                  onChange={(e) => setUrlValue(e.target.value)}
+                  placeholder="https://..."
+                  className="h-12 px-12 rounded-xl bg-black/40 border-white/10 focus:border-primary/60 focus-visible:ring-1 focus-visible:ring-primary/40"
+                  style={{ direction: "ltr", textAlign: "left" }}
+                />
+              </div>
             </div>
 
             {/* Description */}
@@ -332,8 +355,10 @@ export default function Report() {
               <Label htmlFor="desc" className="text-base font-bold">{t("report.description")}</Label>
               <Textarea
                 id="desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder={t("report.descPlaceholder")}
-                className="min-h-[120px] rounded-xl bg-black/40 border-white/10 resize-none p-4 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                className="min-h-[120px] rounded-xl bg-black/40 border-white/10 resize-none p-4 focus:border-primary/60 focus-visible:ring-1 focus-visible:ring-primary/40"
               />
             </div>
 
@@ -385,7 +410,11 @@ export default function Report() {
 
             {/* Anonymous */}
             <div className="flex items-center gap-3 bg-white/5 p-4 rounded-xl border border-white/5">
-              <Checkbox id="anonymous" />
+              <Checkbox
+                id="anonymous"
+                checked={isAnonymous}
+                onCheckedChange={(v) => setIsAnonymous(!!v)}
+              />
               <Label htmlFor="anonymous" className="text-sm font-medium leading-none cursor-pointer">
                 {t("report.anonymous")}
               </Label>

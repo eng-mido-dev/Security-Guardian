@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/context/LangContext";
-import { api, type ApiVideo, type AdminUser } from "@/lib/api";
+import { api, type ApiVideo, type AdminUser, type ApiReport } from "@/lib/api";
 import {
   Shield, Users, FileText, PlayCircle, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
@@ -83,19 +83,13 @@ function VideoRowThumb({ url }: { url: string }) {
   );
 }
 
-const MOCK_REPORTS = [
-  { id: "R-001", type: "phishing", url: "http://fake-bank.xyz/login", date: "2026-03-20", status: "pending" },
-  { id: "R-002", type: "financial", url: "https://invest-now-profit.ml", date: "2026-03-21", status: "reviewed" },
-  { id: "R-003", type: "identity", url: "", date: "2026-03-22", status: "pending" },
-  { id: "R-004", type: "fake_message", url: "", date: "2026-03-23", status: "closed" },
-];
-
 export default function AdminDashboard() {
   const { isRTL } = useLang();
   const { toast } = useToast();
 
   const [videos, setVideos] = useState<ApiVideo[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [reports, setReports] = useState<ApiReport[]>([]);
   const [videosLoading, setVideosLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<Partial<ApiVideo>>({});
@@ -109,6 +103,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     api.videos.list().then(setVideos).finally(() => setVideosLoading(false));
     api.admin.users().then(setUsers).catch(() => {});
+    api.reports.list().then(setReports).catch(() => {});
   }, []);
 
   const fetchDuration = useCallback(async (url: string, target: "new" | "edit") => {
@@ -228,9 +223,9 @@ export default function AdminDashboard() {
 
   const stats = [
     { icon: <Users className="w-5 h-5" />, label: isRTL ? "المستخدمون المسجلون" : "Registered Users", value: users.length, color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/20" },
-    { icon: <FileText className="w-5 h-5" />, label: isRTL ? "إجمالي البلاغات" : "Total Reports", value: MOCK_REPORTS.length, color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20" },
+    { icon: <FileText className="w-5 h-5" />, label: isRTL ? "إجمالي البلاغات" : "Total Reports", value: reports.length, color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20" },
     { icon: <PlayCircle className="w-5 h-5" />, label: isRTL ? "فيديوهات التعلم" : "Learning Videos", value: videos.length, color: "text-primary", bg: "bg-primary/10 border-primary/20" },
-    { icon: <Activity className="w-5 h-5" />, label: isRTL ? "بلاغات معلقة" : "Pending Reports", value: MOCK_REPORTS.filter((r) => r.status === "pending").length, color: "text-red-400", bg: "bg-red-400/10 border-red-400/20" },
+    { icon: <Activity className="w-5 h-5" />, label: isRTL ? "بلاغات معلقة" : "Pending Reports", value: reports.filter((r) => r.status === "pending").length, color: "text-red-400", bg: "bg-red-400/10 border-red-400/20" },
   ];
 
   const tabs = [
@@ -482,39 +477,107 @@ export default function AdminDashboard() {
 
         {activeTab === "reports" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 className="text-lg font-bold mb-4">{isRTL ? "بلاغات المستخدمين" : "User Reports"}</h2>
-            <div className="bg-[#0D0D0F] border border-white/5 rounded-2xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/5 text-muted-foreground text-xs uppercase tracking-wider">
-                      <th className="px-5 py-3 text-start font-medium">{isRTL ? "رقم البلاغ" : "Report ID"}</th>
-                      <th className="px-5 py-3 text-start font-medium">{isRTL ? "نوع الاحتيال" : "Fraud Type"}</th>
-                      <th className="px-5 py-3 text-start font-medium">{isRTL ? "الرابط" : "URL"}</th>
-                      <th className="px-5 py-3 text-start font-medium">{isRTL ? "التاريخ" : "Date"}</th>
-                      <th className="px-5 py-3 text-start font-medium">{isRTL ? "الحالة" : "Status"}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {MOCK_REPORTS.map((report) => (
-                      <tr key={report.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground">{report.id}</td>
-                        <td className="px-5 py-3.5">
-                          <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">{report.type}</span>
-                        </td>
-                        <td className="px-5 py-3.5 text-xs text-blue-400/70 font-mono max-w-[200px] truncate" dir="ltr">{report.url || "—"}</td>
-                        <td className="px-5 py-3.5 text-xs text-muted-foreground">{report.date}</td>
-                        <td className="px-5 py-3.5">
-                          {report.status === "pending" && <span className="flex items-center gap-1 text-xs text-amber-400"><AlertCircle className="w-3 h-3" /> {isRTL ? "معلق" : "Pending"}</span>}
-                          {report.status === "reviewed" && <span className="flex items-center gap-1 text-xs text-blue-400"><Eye className="w-3 h-3" /> {isRTL ? "مراجع" : "Reviewed"}</span>}
-                          {report.status === "closed" && <span className="flex items-center gap-1 text-xs text-emerald-400"><Check className="w-3 h-3" /> {isRTL ? "مغلق" : "Closed"}</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">{isRTL ? "بلاغات المستخدمين" : "User Reports"}</h2>
+              <span className="text-xs text-muted-foreground bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                {reports.length} {isRTL ? "بلاغ" : "reports"}
+              </span>
             </div>
+
+            {reports.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground bg-[#0D0D0F] border border-white/5 rounded-2xl">
+                <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">{isRTL ? "لا توجد بلاغات حتى الآن" : "No reports submitted yet"}</p>
+              </div>
+            ) : (
+              <div className="bg-[#0D0D0F] border border-white/5 rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/5 text-muted-foreground text-xs uppercase tracking-wider">
+                        <th className="px-4 py-3 text-start font-medium">#</th>
+                        <th className="px-4 py-3 text-start font-medium">{isRTL ? "البريد الإلكتروني" : "Email"}</th>
+                        <th className="px-4 py-3 text-start font-medium">{isRTL ? "نوع الاحتيال" : "Fraud Type"}</th>
+                        <th className="px-4 py-3 text-start font-medium">{isRTL ? "الرابط / التفاصيل" : "URL / Details"}</th>
+                        <th className="px-4 py-3 text-start font-medium">{isRTL ? "التاريخ" : "Date"}</th>
+                        <th className="px-4 py-3 text-start font-medium">{isRTL ? "الحالة" : "Status"}</th>
+                        <th className="px-4 py-3 text-start font-medium">{isRTL ? "الإجراء" : "Actions"}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {reports.map((report) => (
+                        <tr key={report.id} className="hover:bg-white/[0.02] transition-colors group">
+                          <td className="px-4 py-3.5 font-mono text-xs text-muted-foreground">#{report.id}</td>
+                          <td className="px-4 py-3.5 text-xs max-w-[140px] truncate">
+                            {report.isAnonymous === "true"
+                              ? <span className="text-muted-foreground italic">{isRTL ? "مجهول" : "Anonymous"}</span>
+                              : <span className="text-white/70">{report.userEmail}</span>}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                              {report.fraudType}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 max-w-[180px]">
+                            {report.url ? (
+                              <span className="text-xs text-blue-400/70 font-mono truncate block" dir="ltr">{report.url}</span>
+                            ) : report.description ? (
+                              <span className="text-xs text-muted-foreground truncate block">{report.description.substring(0, 50)}{report.description.length > 50 ? "…" : ""}</span>
+                            ) : (
+                              <span className="text-muted-foreground/40">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(report.submittedAt).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { day: "numeric", month: "short", year: "numeric" })}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            {report.status === "pending"
+                              ? <span className="flex items-center gap-1 text-xs text-amber-400 whitespace-nowrap"><AlertCircle className="w-3 h-3" /> {isRTL ? "معلق" : "Pending"}</span>
+                              : <span className="flex items-center gap-1 text-xs text-emerald-400 whitespace-nowrap"><Check className="w-3 h-3" /> {isRTL ? "محلول" : "Resolved"}</span>}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {report.status === "pending" && (
+                                <button
+                                  title={isRTL ? "تعيين كمحلول" : "Mark as Resolved"}
+                                  onClick={async () => {
+                                    try {
+                                      const updated = await api.reports.resolve(report.id);
+                                      setReports((prev) => prev.map((r) => r.id === report.id ? { ...r, status: updated.status } : r));
+                                      toast({ title: isRTL ? "تم حل البلاغ" : "Report resolved" });
+                                    } catch {
+                                      toast({ title: isRTL ? "فشلت العملية" : "Operation failed", variant: "destructive" });
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-400 text-muted-foreground transition-colors"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              <button
+                                title={isRTL ? "حذف البلاغ" : "Delete Report"}
+                                onClick={async () => {
+                                  try {
+                                    await api.reports.delete(report.id);
+                                    setReports((prev) => prev.filter((r) => r.id !== report.id));
+                                    toast({ title: isRTL ? "تم حذف البلاغ" : "Report deleted" });
+                                  } catch {
+                                    toast({ title: isRTL ? "فشل الحذف" : "Delete failed", variant: "destructive" });
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-red-500/10 hover:text-red-400 text-muted-foreground transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 

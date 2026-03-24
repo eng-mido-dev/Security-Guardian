@@ -43,6 +43,18 @@ export const scanHistoryTable = pgTable("scan_history", {
   scannedAt: timestamp("scanned_at").defaultNow().notNull(),
 });
 
+export const reportsTable = pgTable("reports", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  userEmail: text("user_email").notNull(),
+  fraudType: text("fraud_type").notNull(),
+  url: text("url").notNull().default(""),
+  description: text("description").notNull().default(""),
+  isAnonymous: text("is_anonymous").notNull().default("false"),
+  status: text("status").notNull().default("pending"),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, joinDate: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof usersTable.$inferSelect;
