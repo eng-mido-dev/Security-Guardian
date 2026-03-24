@@ -7,9 +7,9 @@ import {
   Shield, Users, FileText, PlayCircle, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
   Eye, Database, Play, Loader2, Tag, ChevronDown, Search,
-  Bell, BellOff, BarChart2, ClipboardList, KeyRound,
+  Bell, BellOff, BarChart2, BarChart3, ClipboardList, KeyRound,
   TrendingUp, AlertTriangle, RefreshCw, ToggleLeft, ToggleRight,
-  Clock, User, ChevronRight
+  Clock, User, ChevronRight, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -486,13 +486,13 @@ export default function AdminDashboard() {
   ];
 
   const tabs = [
-    { id: "videos" as const, label: isRTL ? "الفيديوهات" : "Videos", icon: <PlayCircle className="w-4 h-4" /> },
-    { id: "categories" as const, label: isRTL ? "التصنيفات" : "Categories", icon: <Tag className="w-4 h-4" /> },
-    { id: "reports" as const, label: isRTL ? "البلاغات" : "Reports", icon: <FileText className="w-4 h-4" /> },
-    { id: "users" as const, label: isRTL ? "المستخدمون" : "Users", icon: <Users className="w-4 h-4" /> },
-    { id: "analytics" as const, label: isRTL ? "الإحصائيات" : "Analytics", icon: <BarChart2 className="w-4 h-4" /> },
-    { id: "notifications" as const, label: isRTL ? "الإشعارات" : "Notifications", icon: <Bell className="w-4 h-4" /> },
-    { id: "logs" as const, label: isRTL ? "السجلات" : "Logs", icon: <ClipboardList className="w-4 h-4" /> },
+    { id: "videos"        as const, label: isRTL ? "الفيديوهات"   : "Videos",        mobileLabel: isRTL ? "فيديو"   : "Videos",   icon: <PlayCircle  className="w-4 h-4" /> },
+    { id: "categories"   as const, label: isRTL ? "التصنيفات"    : "Categories",     mobileLabel: isRTL ? "تصنيف"   : "Cats",     icon: <Settings    className="w-4 h-4" /> },
+    { id: "reports"      as const, label: isRTL ? "البلاغات"     : "Reports",        mobileLabel: isRTL ? "بلاغ"    : "Reports",  icon: <FileText    className="w-4 h-4" /> },
+    { id: "users"        as const, label: isRTL ? "المستخدمون"   : "Users",          mobileLabel: isRTL ? "مستخدم"  : "Users",    icon: <Users       className="w-4 h-4" /> },
+    { id: "analytics"    as const, label: isRTL ? "الإحصائيات"   : "Analytics",      mobileLabel: isRTL ? "إحصاء"   : "Stats",    icon: <BarChart3   className="w-4 h-4" /> },
+    { id: "notifications"as const, label: isRTL ? "الإشعارات"    : "Notifications",  mobileLabel: isRTL ? "إشعار"   : "Notifs",   icon: <Bell        className="w-4 h-4" /> },
+    { id: "logs"         as const, label: isRTL ? "السجلات"      : "Logs",           mobileLabel: isRTL ? "سجل"     : "Logs",     icon: <ClipboardList className="w-4 h-4" /> },
   ];
 
   const saveCategory = async (id: number) => {
@@ -611,67 +611,122 @@ export default function AdminDashboard() {
   const urlInputClass = "h-10 rounded-xl bg-black/40 border-white/10 text-sm px-12 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50";
 
   return (
-    <div className="min-h-screen bg-[#070709]">
-      <div className="border-b border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/30">
-                <Shield className="w-7 h-7 text-primary-foreground" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold bg-primary/20 text-primary px-2.5 py-0.5 rounded-full border border-primary/30 uppercase tracking-wider">
-                    {isRTL ? "مدير النظام" : "System Admin"}
-                  </span>
-                </div>
-                <h1 className="text-2xl font-black">{isRTL ? "لوحة تحكم المدير" : "Admin Control Panel"}</h1>
-                <p className="text-muted-foreground text-sm mt-0.5">admin@h.com</p>
-              </div>
+    <div className="flex h-screen overflow-hidden bg-[#070709]" dir={isRTL ? "rtl" : "ltr"}>
+
+      {/* ── Desktop Sidebar ── */}
+      <aside className="hidden md:flex flex-col w-56 shrink-0 h-screen border-e border-white/10 bg-gray-950/50 backdrop-blur-xl sticky top-0 z-30">
+        {/* Brand */}
+        <div className="px-5 py-[18px] border-b border-white/[0.07] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/15 p-[7px] rounded-xl border border-primary/20">
+              <Shield className="w-[18px] h-[18px] text-primary" />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-end hidden md:block">
-                <p className="text-xs text-muted-foreground">{isRTL ? "آخر تسجيل دخول" : "Last Login"}</p>
-                <p className="text-sm font-bold">{new Date().toLocaleDateString(isRTL ? "ar-SA" : "en-US")}</p>
-              </div>
+            <div>
+              <p className="font-black text-sm leading-none mb-0.5">{isRTL ? "حُراس" : "Horras"}</p>
+              <p className="text-[10px] text-primary/55 font-medium leading-none">{isRTL ? "مدير النظام" : "System Admin"}</p>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              className={`rounded-2xl p-5 border ${stat.bg}`}
-            >
-              <div className={`${stat.color} mb-3`}>{stat.icon}</div>
-              <p className="text-3xl font-black mb-1">{stat.value}</p>
-              <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
-            </motion.div>
-          ))}
+        {/* Nav */}
+        <nav className="flex-1 px-2.5 py-3 overflow-y-auto scrollbar-none space-y-0.5">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden ${
+                  isActive
+                    ? "text-primary bg-gradient-to-r from-primary/10 to-transparent"
+                    : "text-white/45 hover:text-white hover:bg-white/[0.04] hover:-translate-y-px"
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="admin-sidebar-indicator"
+                    className="absolute start-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-full shadow-[0_0_10px_rgba(255,184,0,0.55)]"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                  />
+                )}
+                <span className={`shrink-0 transition-colors duration-200 ${isActive ? "text-primary" : "group-hover:text-primary/60"}`}>
+                  {tab.icon}
+                </span>
+                <span className="truncate">{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="shrink-0 px-5 py-4 border-t border-white/[0.07]">
+          <p className="text-[10px] text-white/25 font-mono leading-none">admin@horras.com</p>
+          <p className="text-[10px] text-white/15 mt-1 leading-none">
+            {new Date().toLocaleDateString(isRTL ? "ar-SA" : "en-US")}
+          </p>
         </div>
+      </aside>
 
-        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5 mb-6 overflow-x-auto">
-          {tabs.map((tab) => (
+      {/* ── Mobile Bottom Nav ── */}
+      <nav className="md:hidden fixed bottom-0 start-0 end-0 h-16 bg-[#0d0d0d]/95 backdrop-blur-xl border-t border-white/10 flex items-center justify-around px-1 z-50">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
-                activeTab === tab.id
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "text-muted-foreground hover:text-white hover:bg-white/5"
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 ${
+                isActive ? "text-primary" : "text-white/30 hover:text-white/60"
               }`}
             >
-              {tab.icon}
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span className={isActive ? "drop-shadow-[0_0_6px_rgba(255,184,0,0.65)]" : ""}>{tab.icon}</span>
+              <span className="text-[9px] font-bold whitespace-nowrap">{tab.mobileLabel}</span>
             </button>
-          ))}
+          );
+        })}
+      </nav>
+
+      {/* ── Main Area ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        {/* Slim top bar — current section breadcrumb */}
+        <div className="shrink-0 h-14 flex items-center gap-3 px-6 border-b border-white/[0.07] bg-[#0a0a0a]/80 backdrop-blur-sm">
+          {(() => {
+            const cur = tabs.find((t) => t.id === activeTab);
+            return cur ? (
+              <>
+                <span className="text-primary/70 shrink-0">{cur.icon}</span>
+                <h1 className="text-sm font-bold text-white/85 truncate">{cur.label}</h1>
+              </>
+            ) : null;
+          })()}
+          <div className="ms-auto shrink-0">
+            <span className="text-[10px] font-bold bg-primary/15 text-primary px-2.5 py-0.5 rounded-full border border-primary/25 uppercase tracking-wider hidden sm:inline">
+              {isRTL ? "مدير النظام" : "System Admin"}
+            </span>
+          </div>
         </div>
+
+        {/* Scrollable content */}
+        <main className="flex-1 overflow-y-auto scrollbar-none pb-20 md:pb-0">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {stats.map((stat, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  className={`rounded-2xl p-5 border ${stat.bg}`}
+                >
+                  <div className={`${stat.color} mb-3`}>{stat.icon}</div>
+                  <p className="text-3xl font-black mb-1">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
+                </motion.div>
+              ))}
+            </div>
 
         {activeTab === "videos" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -1914,6 +1969,9 @@ export default function AdminDashboard() {
             )}
           </motion.div>
         )}
+
+          </div>
+        </main>
       </div>
     </div>
   );
