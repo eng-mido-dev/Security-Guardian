@@ -98,12 +98,16 @@ export default function AdminDashboard() {
   const [titleFetching, setTitleFetching] = useState(false);
   const [titleTranslating, setTitleTranslating] = useState(false);
   const [descTranslating, setDescTranslating] = useState(false);
+  const [titleTranslatingFromAr, setTitleTranslatingFromAr] = useState(false);
+  const [descTranslatingFromAr, setDescTranslatingFromAr] = useState(false);
   const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users">("videos");
   const [durationFetching, setDurationFetching] = useState(false);
   const cancelFetchRef = useRef<(() => void) | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const arTitleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const arDescDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     api.videos.list().then(setVideos).finally(() => setVideosLoading(false));
@@ -170,18 +174,20 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const translateToArabic = async (text: string): Promise<string> => {
+  const translateText = async (text: string, targetLang: "ar" | "en"): Promise<string> => {
     try {
-      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ar&dt=t&q=${encodeURIComponent(text)}`;
-      const res = await fetch(url);
+      const endpoint = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+      const res = await fetch(endpoint);
       if (!res.ok) return "";
       const data = await res.json();
-      const translated = (data as string[][][])[0]?.map((chunk) => chunk[0]).join("") ?? "";
-      return translated;
+      return (data as string[][][])[0]?.map((chunk) => chunk[0]).join("") ?? "";
     } catch {
       return "";
     }
   };
+
+  const translateToArabic = (text: string) => translateText(text, "ar");
+  const translateToEnglish = (text: string) => translateText(text, "en");
 
   const fetchYouTubeTitle = useCallback(async (url: string, target: "new" | "edit") => {
     try {
@@ -261,6 +267,46 @@ export default function AdminDashboard() {
         } catch { }
         finally { setDescTranslating(false); }
       }, 900);
+    },
+    []
+  );
+
+  const handleArTitleChange = useCallback(
+    (titleAr: string, target: "new" | "edit") => {
+      if (target === "new") setNewVideo((p) => ({ ...p, titleAr }));
+      else setEditData((p) => ({ ...p, titleAr }));
+      if (arTitleDebounceRef.current) clearTimeout(arTitleDebounceRef.current);
+      if (!titleAr.trim()) return;
+      arTitleDebounceRef.current = setTimeout(async () => {
+        setTitleTranslatingFromAr(true);
+        try {
+          const translated = await translateToEnglish(titleAr);
+          if (translated) {
+            if (target === "new") setNewVideo((p) => ({ ...p, title: translated }));
+            else setEditData((p) => ({ ...p, title: translated }));
+          }
+        } catch { } finally { setTitleTranslatingFromAr(false); }
+      }, 500);
+    },
+    []
+  );
+
+  const handleArDescriptionChange = useCallback(
+    (descAr: string, target: "new" | "edit") => {
+      if (target === "new") setNewVideo((p) => ({ ...p, descriptionAr: descAr }));
+      else setEditData((p) => ({ ...p, descriptionAr: descAr }));
+      if (arDescDebounceRef.current) clearTimeout(arDescDebounceRef.current);
+      if (!descAr.trim()) return;
+      arDescDebounceRef.current = setTimeout(async () => {
+        setDescTranslatingFromAr(true);
+        try {
+          const translated = await translateToEnglish(descAr);
+          if (translated) {
+            if (target === "new") setNewVideo((p) => ({ ...p, description: translated }));
+            else setEditData((p) => ({ ...p, description: translated }));
+          }
+        } catch { } finally { setDescTranslatingFromAr(false); }
+      }, 500);
     },
     []
   );
@@ -459,7 +505,14 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-2 px-4 py-2.5 border-r border-white/[0.07]">
                           <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">EN</span>
                           <span className="text-[10px] text-white/30">{isRTL ? "الإنجليزية" : "English"}</span>
-                          {titleFetching && <Loader2 className="w-3 h-3 animate-spin text-primary/50 ms-auto" />}
+                          {(titleFetching || titleTranslatingFromAr || descTranslatingFromAr) && (
+                            <span className="flex items-center gap-1 ms-auto">
+                              <Loader2 className="w-3 h-3 animate-spin text-primary/50" />
+                              {(titleTranslatingFromAr || descTranslatingFromAr) && (
+                                <span className="text-[9px] text-primary/50">{isRTL ? "ترجمة..." : "Translating..."}</span>
+                              )}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 px-4 py-2.5">
                           <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">AR</span>
@@ -481,15 +534,21 @@ export default function AdminDashboard() {
                             value={newVideo.title}
                             onChange={(e) => handleTitleChange(e.target.value, "new")}
                             className="h-9 rounded-lg bg-black/30 border-white/10 text-sm"
-                            placeholder={titleFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : (isRTL ? "Title in English" : "Title in English")}
-                            readOnly={titleFetching}
+                            placeholder={
+                              titleFetching
+                                ? (isRTL ? "جاري الجلب..." : "Fetching...")
+                                : titleTranslatingFromAr
+                                ? (isRTL ? "جاري الترجمة..." : "Translating...")
+                                : "Title in English"
+                            }
+                            readOnly={titleFetching || titleTranslatingFromAr}
                           />
                         </div>
                         <div className="p-3 space-y-1">
                           <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "العنوان" : "Title"}</Label>
                           <Input
                             value={newVideo.titleAr || ""}
-                            onChange={(e) => setNewVideo((p) => ({ ...p, titleAr: e.target.value }))}
+                            onChange={(e) => handleArTitleChange(e.target.value, "new")}
                             className="h-9 rounded-lg bg-black/30 border-white/10 text-sm"
                             dir="rtl"
                             placeholder={titleTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "العنوان بالعربية" : "العنوان بالعربية")}
@@ -506,7 +565,8 @@ export default function AdminDashboard() {
                             value={newVideo.description || ""}
                             onChange={(e) => handleDescriptionChange(e.target.value, "new")}
                             rows={3}
-                            placeholder={isRTL ? "Short description..." : "Short description..."}
+                            placeholder={descTranslatingFromAr ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "Short description..." : "Short description...")}
+                            readOnly={descTranslatingFromAr}
                             className="w-full rounded-lg bg-black/30 border border-white/10 text-sm text-white placeholder:text-white/25 px-3 py-2 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
                           />
                         </div>
@@ -514,7 +574,7 @@ export default function AdminDashboard() {
                           <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
                           <textarea
                             value={newVideo.descriptionAr || ""}
-                            onChange={(e) => setNewVideo((p) => ({ ...p, descriptionAr: e.target.value }))}
+                            onChange={(e) => handleArDescriptionChange(e.target.value, "new")}
                             rows={3}
                             dir="rtl"
                             placeholder={descTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "وصف بالعربية..." : "وصف بالعربية...")}
@@ -590,7 +650,14 @@ export default function AdminDashboard() {
                             <div className="flex items-center gap-2 px-4 py-2.5 border-r border-white/[0.07]">
                               <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">EN</span>
                               <span className="text-[10px] text-white/30">{isRTL ? "الإنجليزية" : "English"}</span>
-                              {titleFetching && <Loader2 className="w-3 h-3 animate-spin text-primary/50 ms-auto" />}
+                              {(titleFetching || titleTranslatingFromAr || descTranslatingFromAr) && (
+                                <span className="flex items-center gap-1 ms-auto">
+                                  <Loader2 className="w-3 h-3 animate-spin text-primary/50" />
+                                  {(titleTranslatingFromAr || descTranslatingFromAr) && (
+                                    <span className="text-[9px] text-primary/50">{isRTL ? "ترجمة..." : "Translating..."}</span>
+                                  )}
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 px-4 py-2.5">
                               <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">AR</span>
@@ -612,14 +679,15 @@ export default function AdminDashboard() {
                                 value={editData.title ?? video.title}
                                 onChange={(e) => handleTitleChange(e.target.value, "edit")}
                                 className="h-9 rounded-lg bg-black/30 border-white/10 text-sm"
-                                readOnly={titleFetching}
+                                placeholder={titleTranslatingFromAr ? (isRTL ? "جاري الترجمة..." : "Translating...") : undefined}
+                                readOnly={titleFetching || titleTranslatingFromAr}
                               />
                             </div>
                             <div className="p-3 space-y-1">
                               <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "العنوان" : "Title"}</Label>
                               <Input
                                 value={editData.titleAr ?? video.titleAr ?? ""}
-                                onChange={(e) => setEditData((p) => ({ ...p, titleAr: e.target.value }))}
+                                onChange={(e) => handleArTitleChange(e.target.value, "edit")}
                                 className="h-9 rounded-lg bg-black/30 border-white/10 text-sm"
                                 dir="rtl"
                                 placeholder={titleTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "العنوان بالعربية" : "العنوان بالعربية")}
@@ -636,7 +704,8 @@ export default function AdminDashboard() {
                                 value={editData.description ?? (video.description || "")}
                                 onChange={(e) => handleDescriptionChange(e.target.value, "edit")}
                                 rows={3}
-                                placeholder={isRTL ? "Short description..." : "Short description..."}
+                                placeholder={descTranslatingFromAr ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "Short description..." : "Short description...")}
+                                readOnly={descTranslatingFromAr}
                                 className="w-full rounded-lg bg-black/30 border border-white/10 text-sm text-white placeholder:text-white/25 px-3 py-2 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
                               />
                             </div>
@@ -644,7 +713,7 @@ export default function AdminDashboard() {
                               <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "الوصف" : "Description"}</Label>
                               <textarea
                                 value={editData.descriptionAr ?? (video.descriptionAr || "")}
-                                onChange={(e) => setEditData((p) => ({ ...p, descriptionAr: e.target.value }))}
+                                onChange={(e) => handleArDescriptionChange(e.target.value, "edit")}
                                 rows={3}
                                 dir="rtl"
                                 placeholder={descTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "وصف بالعربية..." : "وصف بالعربية...")}
