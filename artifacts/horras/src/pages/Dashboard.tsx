@@ -8,9 +8,10 @@ import { HalfCircleGauge } from "@/components/ui/circular-progress";
 import VideoModal from "@/components/VideoModal";
 import {
   ShieldCheck, Target, Link2, CheckSquare, Bell,
-  ArrowLeft, ArrowRight, User, ClipboardCheck, Search, Calendar,
-  PlayCircle, BookOpen, AlertTriangle, ShieldAlert, Shield
+  ArrowLeft, ArrowRight, ClipboardCheck, Search, Calendar,
+  BookOpen, AlertTriangle, ShieldAlert
 } from "lucide-react";
+import VideoCard from "@/components/VideoCard";
 import { Button } from "@/components/ui/button";
 import AdminDashboard from "./AdminDashboard";
 
@@ -40,13 +41,6 @@ function videoMatchesCategory(video: ApiVideo, category: string): boolean {
   return keywords.some((kw) => haystack.includes(kw.toLowerCase()));
 }
 
-function getYouTubeThumbnail(url: string): string {
-  const match = url.match(
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/
-  );
-  if (!match) return "https://placehold.co/320x180/111/555?text=Video";
-  return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
-}
 
 export default function Dashboard() {
   const { user, isAdmin, isLoading, quizScore, linksChecked, toolsChecked, failedTopics, getSecurityScore, getSecurityLevel } = useApp();
@@ -242,47 +236,15 @@ export default function Dashboard() {
             </div>
 
             <div className="p-5">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {reminderVideos.map((video) => (
-                  <button
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {reminderVideos.map((video, i) => (
+                  <VideoCard
                     key={video.id}
+                    video={video}
+                    isRTL={isRTL}
+                    index={i}
                     onClick={() => { setActiveVideo(video); setVideoModalOpen(true); }}
-                    className="rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm group hover:border-amber-400/40 hover:bg-amber-500/[0.04] hover:shadow-lg hover:shadow-amber-500/5 transition-all text-start flex flex-col"
-                  >
-                    <div className="relative overflow-hidden">
-                      <img
-                        src={getYouTubeThumbnail(video.url)}
-                        alt={isRTL && video.titleAr ? video.titleAr : video.title}
-                        className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src =
-                            "https://placehold.co/320x180/0D0D0F/333?text=Video";
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <div className="w-11 h-11 rounded-full bg-amber-400 flex items-center justify-center shadow-2xl shadow-amber-400/40 scale-90 group-hover:scale-100 transition-transform duration-300">
-                          <PlayCircle className="w-5 h-5 text-black fill-black" />
-                        </div>
-                      </div>
-                      {video.duration && (
-                        <span className="absolute bottom-2 end-2 text-[10px] font-bold bg-black/75 text-white px-1.5 py-0.5 rounded-md backdrop-blur-sm border border-white/10">
-                          {video.duration}
-                        </span>
-                      )}
-                    </div>
-                    <div className="px-3 py-2.5 flex-1 flex flex-col gap-0.5">
-                      {video.category && (
-                        <span className="text-[9px] font-bold text-amber-400/70 uppercase tracking-widest">{video.category}</span>
-                      )}
-                      <p className="text-xs font-semibold leading-snug line-clamp-2 text-white/85 group-hover:text-amber-300 transition-colors flex-1">
-                        {isRTL && video.titleAr ? video.titleAr : video.title}
-                      </p>
-                      {video.description && (
-                        <p className="text-[10px] text-white/30 line-clamp-1 mt-0.5">{video.description}</p>
-                      )}
-                    </div>
-                  </button>
+                  />
                 ))}
               </div>
 

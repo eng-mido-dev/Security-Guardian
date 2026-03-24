@@ -1,65 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Clock, PlayCircle, Youtube } from "lucide-react";
+import { PlayCircle, Youtube } from "lucide-react";
 import { useLang } from "@/context/LangContext";
 import { useApp } from "@/context/AppContext";
 import LoginModal from "@/components/LoginModal";
 import VideoModal from "@/components/VideoModal";
+import VideoCard from "@/components/VideoCard";
 import { api, type ApiVideo } from "@/lib/api";
-
-function extractYouTubeId(url: string): string | null {
-  if (!url) return null;
-  const patterns = [
-    /youtube\.com\/watch\?v=([^&]+)/,
-    /youtu\.be\/([^?]+)/,
-    /youtube\.com\/embed\/([^?]+)/,
-    /youtube\.com\/shorts\/([^?]+)/,
-    /youtube\.com\/v\/([^?]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match?.[1]) return match[1];
-  }
-  return null;
-}
-
-function VideoThumbnail({ url, title }: { url?: string; title: string }) {
-  const [quality, setQuality] = useState<"hqdefault" | "mqdefault" | "error">("hqdefault");
-  const videoId = url ? extractYouTubeId(url) : null;
-  const thumbUrl = videoId && quality !== "error"
-    ? `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`
-    : null;
-
-  const handleImgError = () => {
-    if (quality === "hqdefault") setQuality("mqdefault");
-    else setQuality("error");
-  };
-
-  return (
-    <div className="relative aspect-video bg-gradient-to-br from-white/5 to-black/40 border border-white/10 rounded-2xl overflow-hidden mb-4 group-hover:border-primary/40 transition-colors">
-      {thumbUrl ? (
-        <img
-          src={thumbUrl}
-          alt={title}
-          className="w-full h-full object-cover"
-          onError={handleImgError}
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Youtube className="w-10 h-10 text-white/10" />
-        </div>
-      )}
-
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/40 transform group-hover:scale-110 transition-transform">
-          <Play className="w-5 h-5 ms-0.5" fill="currentColor" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function Learn() {
   const { isRTL } = useLang();
@@ -147,41 +94,16 @@ export default function Learn() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
         >
           {filtered.map((video, i) => (
-            <motion.div
+            <VideoCard
               key={video.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.25, delay: i * 0.04 }}
-              className="group cursor-pointer"
+              video={video}
+              isRTL={isRTL}
+              index={i}
               onClick={() => openVideo(video)}
-            >
-              <div className="relative">
-                <VideoThumbnail url={video.url} title={video.title} />
-
-                <div className="absolute bottom-7 end-3 z-30 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded-lg text-xs font-medium text-white/90">
-                  <Clock className="w-3 h-3" />
-                  {video.duration}
-                </div>
-
-                {video.category && (
-                  <div className="absolute top-3 start-3 z-30">
-                    <span className="text-xs px-2 py-0.5 rounded-full border font-medium backdrop-blur-sm bg-primary/20 text-primary border-primary/30">
-                      {video.category}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <h3 className="font-bold text-sm mb-1 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
-                {isRTL && video.titleAr ? video.titleAr : video.title}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {video.category ? (isRTL ? `تصنيف: ${video.category}` : `Category: ${video.category}`) : (isRTL ? "فيديو تعليمي" : "Educational video")}
-              </p>
-            </motion.div>
+            />
           ))}
         </motion.div>
       </AnimatePresence>
