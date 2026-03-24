@@ -142,9 +142,14 @@ export default function VideoModal({
                     display: "flex",
                     flexDirection: "column",
                     maxHeight: "calc(90vh - 3rem)",
+                    /* Glassmorphism: semi-transparent card + card-level blur */
+                    background: "rgba(3,7,18,0.92)",
+                    backdropFilter: "blur(24px)",
+                    WebkitBackdropFilter: "blur(24px)",
+                    /* Thin gold accent border + deep shadow-2xl */
+                    border: "1px solid rgba(255,184,0,0.18)",
                     boxShadow:
-                      "0 40px 100px rgba(0,0,0,0.96), 0 0 0 1px rgba(255,255,255,0.07)",
-                    background: "#0b0b0e",
+                      "0 25px 60px rgba(0,0,0,0.75), 0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,184,0,0.08)",
                   }}
                 >
                   {/* Gold shimmer line */}
@@ -229,7 +234,7 @@ export default function VideoModal({
                       flex: 1,
                       minHeight: 0,
                       overflowY: "auto",
-                      padding: "20px 24px 24px",
+                      padding: "28px 32px 32px",   /* p-8 */
                       display: "flex",
                       flexDirection: "column",
                       gap: "0",
@@ -364,14 +369,14 @@ export default function VideoModal({
                       />
                     )}
 
-                    {/* ── Description — leading-relaxed, readable ── */}
+                    {/* ── Description — text-base, leading-relaxed, text-gray-300 ── */}
                     {displayDescription && (
                       <p
                         style={{
                           margin: 0,
-                          fontSize: "14px",
-                          lineHeight: 1.85,   /* leading-relaxed */
-                          color: "rgba(255,255,255,0.6)",
+                          fontSize: "16px",          /* text-base */
+                          lineHeight: 1.65,          /* leading-relaxed */
+                          color: "rgba(209,213,219,0.9)",  /* text-gray-300 */
                           textAlign,
                         }}
                       >
