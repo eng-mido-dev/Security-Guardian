@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Play } from "lucide-react";
+import { X, Play, Clock, Shield } from "lucide-react";
 import { useLang } from "@/context/LangContext";
 
 interface VideoModalProps {
@@ -10,6 +10,7 @@ interface VideoModalProps {
   titleAr?: string;
   url: string;
   category?: string;
+  duration?: string;
   description?: string;
   descriptionAr?: string;
 }
@@ -21,110 +22,165 @@ function getYouTubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function VideoModal({ isOpen, onClose, title, titleAr, url, category, description, descriptionAr }: VideoModalProps) {
+export default function VideoModal({
+  isOpen,
+  onClose,
+  title,
+  titleAr,
+  url,
+  category,
+  duration,
+  description,
+  descriptionAr,
+}: VideoModalProps) {
   const { isRTL } = useLang();
   const videoId = getYouTubeId(url);
   const displayTitle = isRTL && titleAr ? titleAr : title;
   const displayDescription = isRTL && descriptionAr ? descriptionAr : description;
+  const dir = isRTL ? "rtl" : "ltr";
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
+  const handleKey = useCallback(
+    (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-    };
-    if (isOpen) document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [isOpen, onClose]);
+    },
+    [onClose]
+  );
 
   useEffect(() => {
     if (isOpen) {
+      document.addEventListener("keydown", handleKey);
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
-  }, [isOpen]);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, handleKey]);
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
-          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+        <>
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-xl"
+            onClick={onClose}
+            aria-hidden="true"
+          />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 24 }}
+            key="modal"
+            initial={{ opacity: 0, scale: 0.93, y: 32 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 24 }}
-            transition={{ type: "spring", damping: 28, stiffness: 320, mass: 0.8 }}
-            className="relative w-full max-w-3xl z-10"
-            onClick={(e) => e.stopPropagation()}
+            exit={{ opacity: 0, scale: 0.93, y: 32 }}
+            transition={{ type: "spring", damping: 30, stiffness: 340, mass: 0.75 }}
+            className="fixed inset-0 z-[121] flex items-center justify-center p-4 sm:p-6 pointer-events-none"
           >
-            <div className="bg-[#0F0F11] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl shadow-black/70 ring-1 ring-white/[0.04]">
+            <div
+              className="relative w-full max-w-2xl pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+              dir={dir}
+            >
+              <div
+                className="relative overflow-hidden rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.85)]"
+                style={{
+                  background: "linear-gradient(160deg, rgba(18,18,22,0.97) 0%, rgba(10,10,12,0.99) 100%)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  backdropFilter: "blur(24px)",
+                }}
+              >
+                <div
+                  className="absolute inset-0 pointer-events-none rounded-2xl"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255,184,0,0.06) 0%, transparent 70%)",
+                  }}
+                />
 
-              <div className={`flex items-start justify-between gap-3 px-5 py-4 bg-gradient-to-b from-white/[0.04] to-transparent ${isRTL ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col flex-1 min-w-0 ${isRTL ? "items-end text-right" : "items-start text-left"}`}>
-                  {category && (
-                    <span className="text-[10px] font-bold text-primary/80 uppercase tracking-widest mb-1.5 px-2 py-0.5 bg-primary/10 rounded-md border border-primary/20">
-                      {category}
-                    </span>
-                  )}
-                  <h3 className="text-sm font-bold text-white leading-snug line-clamp-2">{displayTitle}</h3>
-                  {displayDescription && (
-                    <p className="text-xs text-white/40 leading-relaxed mt-2 line-clamp-2">{displayDescription}</p>
-                  )}
-                </div>
                 <button
                   onClick={onClose}
-                  className="shrink-0 p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all mt-0.5 border border-transparent hover:border-white/10"
                   aria-label="Close"
+                  className="absolute top-3.5 right-3.5 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.14] hover:border-white/20 transition-all duration-150"
+                  style={isRTL ? { right: "auto", left: "0.875rem" } : {}}
                 >
                   <X className="w-4 h-4" />
                 </button>
-              </div>
 
-              <div className="relative bg-black" style={{ paddingBottom: "56.25%" }}>
-                {videoId ? (
-                  <iframe
-                    className="absolute inset-0 w-full h-full"
-                    src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white`}
-                    title={displayTitle}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    referrerPolicy="strict-origin-when-cross-origin"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/20">
-                    <Play className="w-12 h-12" />
-                    <p className="text-sm">{isRTL ? "الفيديو غير متاح" : "Video not available"}</p>
+                <div className="relative w-full bg-black rounded-t-2xl overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
+                  {videoId ? (
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white&iv_load_policy=3&disablekb=0`}
+                      title={displayTitle}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      loading="eager"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0A0A0C]">
+                      <div className="w-16 h-16 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
+                        <Play className="w-7 h-7 text-white/20 translate-x-0.5" />
+                      </div>
+                      <p className="text-sm text-white/25 font-medium">
+                        {isRTL ? "الفيديو غير متاح" : "Video unavailable"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-5 pt-4 pb-5 space-y-3">
+                  <div className={`flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className={`flex flex-wrap items-center gap-2 mb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        {category && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-widest px-2.5 py-1 rounded-md bg-primary/10 border border-primary/20">
+                            <Shield className="w-2.5 h-2.5" />
+                            {category}
+                          </span>
+                        )}
+                        {duration && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-white/40 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/[0.07]">
+                            <Clock className="w-2.5 h-2.5" />
+                            {duration}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3
+                        className="text-base font-bold text-white leading-snug"
+                        style={{ textAlign: isRTL ? "right" : "left" }}
+                      >
+                        {displayTitle}
+                      </h3>
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div className={`px-5 py-3 flex items-center justify-between border-t border-white/[0.06] bg-black/30 ${isRTL ? "flex-row-reverse" : ""}`}>
-                <span className="text-[10px] text-white/25 font-medium tracking-wide uppercase">
-                  {isRTL ? "حُراس · مشغّل الفيديو" : "Horras · Video Player"}
-                </span>
-                {videoId && (
-                  <a
-                    href={`https://www.youtube.com/watch?v=${videoId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-[10px] text-white/30 hover:text-primary transition-colors font-medium"
+                  {displayDescription && (
+                    <p
+                      className="text-sm text-white/45 leading-relaxed"
+                      style={{ textAlign: isRTL ? "right" : "left" }}
+                    >
+                      {displayDescription}
+                    </p>
+                  )}
+
+                  <div
+                    className={`flex items-center pt-1 border-t border-white/[0.05] ${isRTL ? "justify-end" : "justify-start"}`}
                   >
-                    <ExternalLink className="w-3 h-3" />
-                    {isRTL ? "فتح في يوتيوب" : "Open in YouTube"}
-                  </a>
-                )}
+                    <span className="text-[10px] text-white/20 font-medium tracking-widest uppercase select-none">
+                      {isRTL ? "حُراس · منصة الأمن السيبراني" : "Horras · Cybersecurity Platform"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   );
