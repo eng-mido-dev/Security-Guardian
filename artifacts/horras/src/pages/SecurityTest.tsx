@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -146,7 +146,7 @@ export default function SecurityTest() {
 
   const [step, setStep] = useState<"intro" | "quiz" | "result">("intro");
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [answersMap, setAnswersMap] = useState<Record<number, number>>({});
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [finalCorrect, setFinalCorrect] = useState(0);
@@ -162,36 +162,45 @@ export default function SecurityTest() {
   const [awarenessCategory, setAwarenessCategory] = useState<{ en: string; ar: string } | null>(null);
   const [awarenessMode, setAwarenessMode] = useState(false);
   const pendingAdvanceRef = useRef<(() => void) | null>(null);
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
+
+  const clearAutoAdvance = () => {
+    if (autoAdvanceTimer.current) {
+      clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
+    setIsAutoAdvancing(false);
+  };
 
   const startQuiz = () => {
     if (!user) { setShowLoginModal(true); return; }
     setStep("quiz");
-    setAnswers([]);
+    setAnswersMap({});
     setCurrentQ(0);
     setSelectedOption(null);
     setAwarenessMode(false);
+    clearAutoAdvance();
     api.videos.list().then(setAllVideos).catch(() => {});
   };
 
-  const handleNext = () => {
-    if (selectedOption === null) return;
-
-    const isWrong = selectedOption !== QUESTIONS[currentQ].correct;
-    const newAnswers = [...answers, selectedOption];
+  const doAdvance = (qIndex: number, optionIndex: number, newMap: Record<number, number>) => {
+    const isWrong = optionIndex !== QUESTIONS[qIndex].correct;
 
     const advance = () => {
-      setAnswers(newAnswers);
       setSelectedOption(null);
-      if (currentQ < QUESTIONS.length - 1) {
-        setCurrentQ((q) => q + 1);
+      if (qIndex < QUESTIONS.length - 1) {
+        const nextQ = qIndex + 1;
+        setCurrentQ(nextQ);
+        setSelectedOption(newMap[nextQ] ?? null);
       } else {
-        finishQuiz(newAnswers);
+        finishQuiz(newMap);
       }
     };
 
     if (isWrong && allVideos.length > 0) {
-      const cat = QUESTIONS[currentQ].category;
-      const catAr = QUESTIONS[currentQ].categoryAr;
+      const cat = QUESTIONS[qIndex].category;
+      const catAr = QUESTIONS[qIndex].categoryAr;
       const matchedVideo = allVideos.find((v) => videoMatchesCategory(v, cat));
       if (matchedVideo) {
         setAwarenessVideo(matchedVideo);
@@ -205,6 +214,28 @@ export default function SecurityTest() {
     advance();
   };
 
+  const selectAnswer = (i: number) => {
+    clearAutoAdvance();
+    setSelectedOption(i);
+    setIsAutoAdvancing(true);
+    const newMap = { ...answersMap, [currentQ]: i };
+    setAnswersMap(newMap);
+    autoAdvanceTimer.current = setTimeout(() => {
+      setIsAutoAdvancing(false);
+      doAdvance(currentQ, i, newMap);
+    }, 300);
+  };
+
+  const goBack = () => {
+    if (currentQ === 0) return;
+    clearAutoAdvance();
+    setAwarenessMode(false);
+    pendingAdvanceRef.current = null;
+    const prevQ = currentQ - 1;
+    setCurrentQ(prevQ);
+    setSelectedOption(answersMap[prevQ] ?? null);
+  };
+
   const dismissAwareness = () => {
     setAwarenessMode(false);
     setAwarenessVideo(null);
@@ -213,14 +244,18 @@ export default function SecurityTest() {
     pendingAdvanceRef.current = null;
   };
 
-  const finishQuiz = async (finalAnswers: number[]) => {
-    const correctCount = finalAnswers.reduce(
-      (acc, ans, idx) => acc + (ans === QUESTIONS[idx].correct ? 1 : 0),
+  useEffect(() => {
+    return () => clearAutoAdvance();
+  }, []);
+
+  const finishQuiz = async (finalMap: Record<number, number>) => {
+    const correctCount = QUESTIONS.reduce(
+      (acc, q, idx) => acc + (finalMap[idx] === q.correct ? 1 : 0),
       0
     );
     const score = Math.round((correctCount / QUESTIONS.length) * 100);
-    const failed = finalAnswers
-      .map((ans, idx) => (ans !== QUESTIONS[idx].correct ? QUESTIONS[idx].category : null))
+    const failed = QUESTIONS
+      .map((q, idx) => (finalMap[idx] !== q.correct ? q.category : null))
       .filter((c): c is string => c !== null);
     const uniqueFailed = [...new Set(failed)];
 
@@ -410,10 +445,14 @@ export default function SecurityTest() {
                 {(isRTL ? QUESTIONS[currentQ].options : QUESTIONS[currentQ].optionsEn).map((opt, i) => (
                   <button
                     key={i}
-                    onClick={() => setSelectedOption(i)}
+                    onClick={() => { if (!isAutoAdvancing) selectAnswer(i); }}
                     className={`${isRTL ? "text-right" : "text-left"} p-2.5 md:p-3 rounded-xl border transition-all duration-200 text-sm font-medium leading-snug ${
-                      selectedOption === i
-                        ? "bg-primary/20 border-primary text-white shadow-[0_0_12px_rgba(255,184,0,0.12)]"
+                      selectedOption === i && isAutoAdvancing
+                        ? "bg-primary/20 border-primary text-white shadow-[0_0_12px_rgba(255,184,0,0.12)] cursor-default"
+                        : isAutoAdvancing
+                        ? "bg-white/5 border-white/10 text-muted-foreground/50 cursor-default"
+                        : selectedOption === i
+                        ? "bg-primary/15 border-primary/60 text-white"
                         : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white"
                     }`}
                   >
@@ -421,19 +460,17 @@ export default function SecurityTest() {
                   </button>
                 ))}
               </div>
-              <div className="mt-5 flex justify-end">
-                <Button
-                  size="sm"
-                  onClick={handleNext}
-                  disabled={selectedOption === null}
-                  className="rounded-xl px-6 font-bold gap-2"
-                >
-                  {currentQ === QUESTIONS.length - 1
-                    ? (isRTL ? "إنهاء الاختبار" : "Finish Test")
-                    : (isRTL ? "التالي" : "Next")}
-                  <ArrowBack className="w-4 h-4" />
-                </Button>
-              </div>
+              {currentQ > 0 && (
+                <div className="mt-4 flex justify-start">
+                  <button
+                    onClick={goBack}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors px-3 py-1.5 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10"
+                  >
+                    <ArrowDir className="w-3.5 h-3.5" />
+                    {isRTL ? "السابق" : "Back"}
+                  </button>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

@@ -63,6 +63,13 @@ export default function CheckLink() {
   const { isRTL } = useLang();
   const ArrowDir = isRTL ? ArrowLeft : ArrowRight;
 
+  const clearResult = () => {
+    setReport(null);
+    setError(null);
+    setScanProgress(0);
+    setActivePhase(0);
+  };
+
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
@@ -105,11 +112,8 @@ export default function CheckLink() {
   };
 
   const reset = () => {
-    setReport(null);
-    setError(null);
-    setScanProgress(0);
+    clearResult();
     setUrl("");
-    setActivePhase(0);
   };
 
   const cfg = report ? STATUS_CONFIG[report.status] : null;
@@ -144,7 +148,7 @@ export default function CheckLink() {
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
-                if (report || error) reset();
+                if (report || error) clearResult();
               }}
               disabled={isScanning}
               className="h-14 px-12 text-sm rounded-2xl bg-black/40 border-white/10 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50"
