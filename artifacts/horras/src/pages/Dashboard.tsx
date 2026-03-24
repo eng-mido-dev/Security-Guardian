@@ -9,7 +9,7 @@ import VideoModal from "@/components/VideoModal";
 import {
   ShieldCheck, Target, Link2, CheckSquare, Bell,
   ArrowLeft, ArrowRight, ClipboardCheck, Search, Calendar,
-  AlertTriangle, ShieldAlert, TrendingUp
+  ShieldAlert, TrendingUp, BookOpen
 } from "lucide-react";
 import VideoCard from "@/components/VideoCard";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ export default function Dashboard() {
   const ArrowDir = isRTL ? ArrowLeft : ArrowRight;
 
   const [reminderVideos, setReminderVideos] = useState<ApiVideo[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [activeVideo, setActiveVideo] = useState<ApiVideo | null>(null);
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
@@ -65,6 +66,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (failedTopics && failedTopics.length > 0) {
+      setActiveCategory(failedTopics[0]);
       api.videos.list()
         .then((videos) => {
           const matched = videos.filter((v) =>
@@ -74,6 +76,7 @@ export default function Dashboard() {
         })
         .catch(() => {});
     } else {
+      setActiveCategory(null);
       setReminderVideos([]);
     }
   }, [failedTopics]);
@@ -214,14 +217,15 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-primary" />
-            {isRTL ? "مازلت تحتاج للتحسين" : "You Still Need Improvement"}
+            {isRTL ? "فيديوهات مقترحة بناءً على نتيجتك" : "Suggested Videos Based on Your Quiz"}
           </h3>
           {reminderVideos.length > 0 && (
             <button
               onClick={() => setLocation("/learn")}
               className="text-xs text-primary/70 hover:text-primary transition-colors flex items-center gap-1 font-medium"
             >
-              {isRTL ? "عرض الكل" : "View All"}
+              <BookOpen className="w-3 h-3" />
+              {isRTL ? "مكتبة الفيديوهات" : "Full Library"}
               <ArrowDir className="w-3 h-3" />
             </button>
           )}
@@ -230,93 +234,123 @@ export default function Dashboard() {
         {/* ── Quiz not yet taken ── */}
         {quizScore === null && (
           <div className="glass-card rounded-2xl border border-white/5 px-6 py-10 flex flex-col items-center gap-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Target className="w-5 h-5 text-primary/60" />
+            <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Target className="w-6 h-6 text-primary/60" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white/70 mb-1">
+              <p className="text-base font-bold text-white/80 mb-1.5">
                 {isRTL ? "لم تكمل اختبار الأمان بعد" : "You haven't taken the security quiz yet"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
                 {isRTL
-                  ? "أكمل الاختبار لنعرف مجالات الضعف ونقترح عليك الفيديوهات المناسبة"
-                  : "Complete the quiz so we can identify your weak areas and suggest the right videos"}
+                  ? "أكمل الاختبار حتى نتعرف على نقاط ضعفك ونقترح لك الفيديوهات الأنسب"
+                  : "Complete the quiz so we can identify your weak areas and recommend the right videos for you"}
               </p>
             </div>
             <Button
               size="sm"
-              className="rounded-xl h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 mt-1"
+              className="rounded-xl px-5 h-9 text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 mt-1"
               onClick={() => setLocation("/security-test")}
             >
-              <Target className="w-3.5 h-3.5 mx-1" />
+              <Target className="w-4 h-4 mx-1" />
               {isRTL ? "ابدأ الاختبار الآن" : "Start the Quiz Now"}
             </Button>
           </div>
         )}
 
         {/* ── Perfect score / no failed topics ── */}
-        {quizScore !== null && (quizScore === 100 || !failedTopics || failedTopics.length === 0) && (
+        {quizScore !== null && (!failedTopics || failedTopics.length === 0) && (
           <div className="glass-card rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] px-6 py-10 flex flex-col items-center gap-4 text-center">
             <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-emerald-400" />
+              <ShieldCheck className="w-7 h-7 text-emerald-400" />
             </div>
             <div>
               <p className="text-base font-bold text-emerald-300 mb-1.5">
                 {isRTL ? "أمانك ممتاز! 🎉" : "Excellent Security! 🎉"}
               </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
                 {isRTL
-                  ? "لا توجد فيديوهات مقترحة حالياً، أمانك الرقمي في مستوى متميز"
-                  : "No suggested videos at the moment — your digital security is at an excellent level"}
+                  ? "أجبت على جميع أسئلة الاختبار بشكل صحيح — لا توجد فيديوهات مقترحة"
+                  : "You answered all quiz questions correctly — no suggested videos at this time"}
               </p>
             </div>
             <button
               onClick={() => setLocation("/learn")}
-              className="text-xs text-emerald-400/70 hover:text-emerald-400 transition-colors flex items-center gap-1 font-medium mt-1"
+              className="text-sm text-emerald-400/70 hover:text-emerald-400 transition-colors flex items-center gap-1.5 font-medium mt-1"
             >
-              {isRTL ? "تصفح المزيد من الفيديوهات" : "Browse more videos"}
+              <BookOpen className="w-3.5 h-3.5" />
+              {isRTL ? "تصفح مكتبة الفيديوهات" : "Browse the video library"}
               <ArrowDir className="w-3 h-3" />
             </button>
           </div>
         )}
 
-        {/* ── Failed topics with matched videos ── */}
+        {/* ── Failed topics: category tabs + filtered video grid ── */}
         {quizScore !== null && failedTopics && failedTopics.length > 0 && (
           <>
-            {/* Weak-area topic badges */}
-            <div className="flex flex-wrap gap-2 mb-5">
-              {failedTopics.map((cat) => (
-                <span
-                  key={cat}
-                  className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-semibold"
-                >
-                  <AlertTriangle className="w-3 h-3 shrink-0" />
-                  {isRTL ? CATEGORY_LABELS_AR[cat] ?? cat : cat}
-                </span>
-              ))}
+            {/* ── Category filter tabs (wrong-answer categories only, no "All") ── */}
+            <div className="flex gap-2 mb-5 overflow-x-auto pb-1 scrollbar-none" dir={isRTL ? "rtl" : "ltr"}>
+              {failedTopics.map((cat) => {
+                const isActive = activeCategory === cat;
+                const catVideos = reminderVideos.filter((v) => videoMatchesCategory(v, cat));
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
+                      isActive
+                        ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25"
+                        : "bg-white/[0.04] text-muted-foreground border-white/[0.07] hover:text-white hover:bg-white/[0.08] hover:border-white/[0.12]"
+                    }`}
+                  >
+                    {isRTL ? CATEGORY_LABELS_AR[cat] ?? cat : cat}
+                    {catVideos.length > 0 && (
+                      <span
+                        className={`text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none ${
+                          isActive ? "bg-black/20 text-primary-foreground" : "bg-white/10 text-white/50"
+                        }`}
+                      >
+                        {catVideos.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
+            {/* ── Video grid filtered by active category tab ── */}
             {reminderVideos.length === 0 ? (
-              /* Videos still loading or none matched */
               <div className="glass-card rounded-2xl border-white/5 px-6 py-10 flex flex-col items-center gap-3 text-center">
                 <div className="w-8 h-8 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
                 <p className="text-xs text-muted-foreground">
                   {isRTL ? "جاري تحميل الفيديوهات..." : "Loading videos..."}
                 </p>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reminderVideos.map((video, i) => (
-                  <VideoCard
-                    key={video.id}
-                    video={video}
-                    isRTL={isRTL}
-                    index={i}
-                    onClick={() => { setActiveVideo(video); setVideoModalOpen(true); }}
-                  />
-                ))}
-              </div>
-            )}
+            ) : (() => {
+              const filtered = activeCategory
+                ? reminderVideos.filter((v) => videoMatchesCategory(v, activeCategory))
+                : reminderVideos;
+
+              return filtered.length === 0 ? (
+                <div className="glass-card rounded-2xl border-white/5 px-6 py-8 text-center text-sm text-muted-foreground">
+                  {isRTL
+                    ? "لا توجد فيديوهات لهذا التصنيف حالياً"
+                    : "No videos found for this category yet"}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filtered.map((video, i) => (
+                    <VideoCard
+                      key={video.id}
+                      video={video}
+                      isRTL={isRTL}
+                      index={i}
+                      onClick={() => { setActiveVideo(video); setVideoModalOpen(true); }}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </>
         )}
       </motion.div>
