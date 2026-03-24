@@ -59,6 +59,13 @@ export const reportsTable = pgTable("reports", {
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
+export const categoriesTable = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  nameAr: text("name_ar").notNull(),
+  nameEn: text("name_en").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, joinDate: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof usersTable.$inferSelect;

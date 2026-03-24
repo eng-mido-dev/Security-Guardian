@@ -75,6 +75,13 @@ export interface AdminUser {
   joinDate: string;
 }
 
+export interface ApiCategory {
+  id: number;
+  nameAr: string;
+  nameEn: string;
+  createdAt: string;
+}
+
 export interface ScanCheck {
   label: string;
   labelEn: string;
@@ -151,6 +158,21 @@ export const api = {
 
   admin: {
     users: () => request<AdminUser[]>("/admin/users"),
+    categories: {
+      list: () => request<ApiCategory[]>("/admin/categories"),
+      create: (nameAr: string, nameEn: string) =>
+        request<ApiCategory>("/admin/categories", {
+          method: "POST",
+          body: JSON.stringify({ nameAr, nameEn }),
+        }),
+      update: (id: number, nameAr: string, nameEn: string) =>
+        request<ApiCategory>(`/admin/categories/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ nameAr, nameEn }),
+        }),
+      delete: (id: number) =>
+        request<{ ok: boolean }>(`/admin/categories/${id}`, { method: "DELETE" }),
+    },
   },
 
   scan: {

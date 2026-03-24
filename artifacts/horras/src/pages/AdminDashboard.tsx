@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/context/LangContext";
-import { api, type ApiVideo, type AdminUser, type ApiReport } from "@/lib/api";
+import { api, type ApiVideo, type AdminUser, type ApiReport, type ApiCategory } from "@/lib/api";
 import {
   Shield, Users, FileText, PlayCircle, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
-  Eye, Database, Play, Loader2
+  Eye, Database, Play, Loader2, Tag, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,9 +110,19 @@ export default function AdminDashboard() {
   const [descTranslating, setDescTranslating] = useState(false);
   const [titleTranslatingFromAr, setTitleTranslatingFromAr] = useState(false);
   const [descTranslatingFromAr, setDescTranslatingFromAr] = useState(false);
-  const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users">("videos");
+  const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users" | "categories">("videos");
   const [durationFetching, setDurationFetching] = useState(false);
   const [expandedDescId, setExpandedDescId] = useState<number | null>(null);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [catEditData, setCatEditData] = useState<Record<number, { nameAr: string; nameEn: string }>>({});
+  const [catSaving, setCatSaving] = useState<number | null>(null);
+  const [newCat, setNewCat] = useState({ nameAr: "", nameEn: "" });
+  const [newCatSaving, setNewCatSaving] = useState(false);
+  const [catDropOpen, setCatDropOpen] = useState(false);
+  const [editCatDropOpen, setEditCatDropOpen] = useState(false);
+  const catDropRef = useRef<HTMLDivElement>(null);
+  const editCatDropRef = useRef<HTMLDivElement>(null);
   const cancelFetchRef = useRef<(() => void) | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,6 +134,32 @@ export default function AdminDashboard() {
     api.videos.list().then(setVideos).finally(() => setVideosLoading(false));
     api.admin.users().then(setUsers).catch(() => {});
     api.reports.list().then(setReports).catch(() => {});
+    api.admin.categories.list().then((cats) => {
+      setCategories(cats);
+      const init: Record<number, { nameAr: string; nameEn: string }> = {};
+      cats.forEach((c) => { init[c.id] = { nameAr: c.nameAr, nameEn: c.nameEn }; });
+      setCatEditData(init);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "categories") return;
+    setCategoriesLoading(true);
+    api.admin.categories.list().then((cats) => {
+      setCategories(cats);
+      const init: Record<number, { nameAr: string; nameEn: string }> = {};
+      cats.forEach((c) => { init[c.id] = { nameAr: c.nameAr, nameEn: c.nameEn }; });
+      setCatEditData(init);
+    }).catch(() => {}).finally(() => setCategoriesLoading(false));
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (catDropRef.current && !catDropRef.current.contains(e.target as Node)) setCatDropOpen(false);
+      if (editCatDropRef.current && !editCatDropRef.current.contains(e.target as Node)) setEditCatDropOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const fetchDuration = useCallback(async (url: string, target: "new" | "edit") => {
@@ -393,9 +429,52 @@ export default function AdminDashboard() {
 
   const tabs = [
     { id: "videos" as const, label: isRTL ? "فيديوهات التعلم" : "Learning Videos", icon: <PlayCircle className="w-4 h-4" /> },
+    { id: "categories" as const, label: isRTL ? "التصنيفات" : "Categories", icon: <Tag className="w-4 h-4" /> },
     { id: "reports" as const, label: isRTL ? "البلاغات" : "Reports", icon: <FileText className="w-4 h-4" /> },
     { id: "users" as const, label: isRTL ? "المستخدمون" : "Users", icon: <Users className="w-4 h-4" /> },
   ];
+
+  const saveCategory = async (id: number) => {
+    const d = catEditData[id];
+    if (!d?.nameAr?.trim() || !d?.nameEn?.trim()) return;
+    setCatSaving(id);
+    try {
+      const updated = await api.admin.categories.update(id, d.nameAr.trim(), d.nameEn.trim());
+      setCategories((prev) => prev.map((c) => c.id === id ? updated : c));
+      toast({ title: isRTL ? "تم حفظ التصنيف" : "Category saved" });
+    } catch {
+      toast({ title: isRTL ? "فشل الحفظ" : "Save failed", variant: "destructive" });
+    } finally {
+      setCatSaving(null);
+    }
+  };
+
+  const deleteCategory = async (id: number) => {
+    try {
+      await api.admin.categories.delete(id);
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setCatEditData((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      toast({ title: isRTL ? "تم حذف التصنيف" : "Category deleted" });
+    } catch {
+      toast({ title: isRTL ? "فشل الحذف" : "Delete failed", variant: "destructive" });
+    }
+  };
+
+  const createCategory = async () => {
+    if (!newCat.nameAr.trim() || !newCat.nameEn.trim()) return;
+    setNewCatSaving(true);
+    try {
+      const created = await api.admin.categories.create(newCat.nameAr.trim(), newCat.nameEn.trim());
+      setCategories((prev) => [...prev, created]);
+      setCatEditData((prev) => ({ ...prev, [created.id]: { nameAr: created.nameAr, nameEn: created.nameEn } }));
+      setNewCat({ nameAr: "", nameEn: "" });
+      toast({ title: isRTL ? "تم إضافة التصنيف" : "Category added" });
+    } catch {
+      toast({ title: isRTL ? "فشلت الإضافة" : "Add failed", variant: "destructive" });
+    } finally {
+      setNewCatSaving(false);
+    }
+  };
 
   const urlInputClass = "h-10 rounded-xl bg-black/40 border-white/10 text-sm px-12 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50";
 
@@ -493,9 +572,52 @@ export default function AdminDashboard() {
                           />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1.5" ref={catDropRef}>
                         <Label className="text-xs text-muted-foreground">{isRTL ? "التصنيف" : "Category"}</Label>
-                        <Input value={newVideo.category} onChange={(e) => setNewVideo((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setCatDropOpen((v) => !v)}
+                            className={`w-full h-10 rounded-xl border text-sm flex items-center justify-between px-3 gap-2 transition-all bg-black/40 ${catDropOpen ? "border-primary/50 ring-1 ring-primary/30" : "border-white/10 hover:border-primary/30"}`}
+                          >
+                            <span className={newVideo.category ? "text-white" : "text-muted-foreground"}>
+                              {newVideo.category ? getLocalizedCategory(newVideo.category, isRTL) : (isRTL ? "اختر تصنيفاً..." : "Select category...")}
+                            </span>
+                            <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${catDropOpen ? "rotate-180 text-primary" : ""}`} />
+                          </button>
+                          <AnimatePresence>
+                            {catDropOpen && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                                transition={{ duration: 0.14 }}
+                                className="absolute z-50 w-full mt-1.5 bg-[#0d0d0f]/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
+                              >
+                                <div className="py-1 max-h-52 overflow-y-auto">
+                                  {categories.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground px-3 py-2">{isRTL ? "لا توجد تصنيفات" : "No categories"}</p>
+                                  ) : categories.map((cat) => {
+                                    const combined = `${cat.nameAr} - ${cat.nameEn}`;
+                                    const isSelected = newVideo.category === combined;
+                                    return (
+                                      <button
+                                        key={cat.id}
+                                        type="button"
+                                        onClick={() => { setNewVideo((p) => ({ ...p, category: combined })); setCatDropOpen(false); }}
+                                        className={`w-full px-3 py-2.5 text-sm text-start flex items-center gap-2 transition-colors ${isSelected ? "bg-primary/10 text-primary font-semibold" : "text-white/80 hover:bg-white/5"}`}
+                                      >
+                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                                        <span dir="rtl" className="flex-1">{cat.nameAr}</span>
+                                        <span className="text-white/30 text-xs shrink-0">{cat.nameEn}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">{isRTL ? "المدة" : "Duration"}</Label>
@@ -643,9 +765,53 @@ export default function AdminDashboard() {
                               />
                             </div>
                           </div>
-                          <div className="space-y-1.5">
+                          <div className="space-y-1.5" ref={editCatDropRef}>
                             <Label className="text-xs text-muted-foreground">{isRTL ? "التصنيف" : "Category"}</Label>
-                            <Input value={editData.category ?? video.category} onChange={(e) => setEditData((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setEditCatDropOpen((v) => !v)}
+                                className={`w-full h-10 rounded-xl border text-sm flex items-center justify-between px-3 gap-2 transition-all bg-black/40 ${editCatDropOpen ? "border-primary/50 ring-1 ring-primary/30" : "border-white/10 hover:border-primary/30"}`}
+                              >
+                                <span className={(editData.category ?? video.category) ? "text-white" : "text-muted-foreground"}>
+                                  {(editData.category ?? video.category) ? getLocalizedCategory(editData.category ?? video.category, isRTL) : (isRTL ? "اختر تصنيفاً..." : "Select category...")}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${editCatDropOpen ? "rotate-180 text-primary" : ""}`} />
+                              </button>
+                              <AnimatePresence>
+                                {editCatDropOpen && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                                    transition={{ duration: 0.14 }}
+                                    className="absolute z-50 w-full mt-1.5 bg-[#0d0d0f]/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
+                                  >
+                                    <div className="py-1 max-h-52 overflow-y-auto">
+                                      {categories.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground px-3 py-2">{isRTL ? "لا توجد تصنيفات" : "No categories"}</p>
+                                      ) : categories.map((cat) => {
+                                        const combined = `${cat.nameAr} - ${cat.nameEn}`;
+                                        const current = editData.category ?? video.category;
+                                        const isSelected = current === combined;
+                                        return (
+                                          <button
+                                            key={cat.id}
+                                            type="button"
+                                            onClick={() => { setEditData((p) => ({ ...p, category: combined })); setEditCatDropOpen(false); }}
+                                            className={`w-full px-3 py-2.5 text-sm text-start flex items-center gap-2 transition-colors ${isSelected ? "bg-primary/10 text-primary font-semibold" : "text-white/80 hover:bg-white/5"}`}
+                                          >
+                                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                                            <span dir="rtl" className="flex-1">{cat.nameAr}</span>
+                                            <span className="text-white/30 text-xs shrink-0">{cat.nameEn}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           </div>
                           <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">{isRTL ? "المدة" : "Duration"}</Label>
@@ -925,6 +1091,163 @@ export default function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === "categories" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold">{isRTL ? "إدارة التصنيفات" : "Category Manager"}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isRTL ? "تعديل التصنيفات يُحدّث تلقائيًا جميع الفيديوهات والفلاتر المرتبطة بها" : "Editing a category automatically updates all linked videos and filters"}
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                {categories.length} {isRTL ? "تصنيف" : "categories"}
+              </span>
+            </div>
+
+            {/* ── Add New Category ── */}
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-primary mb-4 flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                {isRTL ? "إضافة تصنيف جديد" : "Add New Category"}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-primary/60 uppercase tracking-wider">
+                    {isRTL ? "الاسم بالعربية ★" : "Arabic Name ★"}
+                  </Label>
+                  <Input
+                    dir="rtl"
+                    value={newCat.nameAr}
+                    onChange={(e) => setNewCat((p) => ({ ...p, nameAr: e.target.value }))}
+                    placeholder="مثال: أمان كلمات المرور"
+                    className="h-10 rounded-xl bg-black/40 border-primary/20 text-sm focus-visible:border-primary/50 focus-visible:ring-primary/30"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                    {isRTL ? "الاسم بالإنجليزية" : "English Name"}
+                  </Label>
+                  <Input
+                    value={newCat.nameEn}
+                    onChange={(e) => setNewCat((p) => ({ ...p, nameEn: e.target.value }))}
+                    placeholder="e.g. Password Security"
+                    className="h-10 rounded-xl bg-black/30 border-white/10 text-sm"
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="rounded-xl gap-1.5"
+                onClick={createCategory}
+                disabled={newCatSaving || !newCat.nameAr.trim() || !newCat.nameEn.trim()}
+              >
+                {newCatSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                {isRTL ? "إضافة" : "Add Category"}
+              </Button>
+            </div>
+
+            {/* ── Categories Table ── */}
+            {categoriesLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground bg-[#0D0D0F] border border-white/5 rounded-2xl">
+                <Tag className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">{isRTL ? "لا توجد تصنيفات بعد" : "No categories yet"}</p>
+                <p className="text-xs mt-1 opacity-60">{isRTL ? "أضف تصنيفاً من الأعلى أو أضف فيديوهات بتصنيفات" : "Add a category above or add videos with categories"}</p>
+              </div>
+            ) : (
+              <div className="bg-[#0D0D0F] border border-white/5 rounded-2xl overflow-hidden">
+                {/* Table header */}
+                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-0 border-b border-white/5">
+                  <div className="px-4 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-medium w-12 flex items-center">#</div>
+                  <div className="px-4 py-3 text-[10px] text-primary/70 uppercase tracking-wider font-medium flex items-center gap-1">
+                    <span>AR ★</span>
+                    <span className="text-muted-foreground font-normal">— {isRTL ? "العربية" : "Arabic"}</span>
+                  </div>
+                  <div className="px-4 py-3 text-[10px] text-muted-foreground uppercase tracking-wider font-medium flex items-center">
+                    EN — {isRTL ? "الإنجليزية" : "English"}
+                  </div>
+                  <div className="px-4 py-3 w-32" />
+                </div>
+
+                {/* Table rows */}
+                <div className="divide-y divide-white/5">
+                  {categories.map((cat, idx) => {
+                    const d = catEditData[cat.id] ?? { nameAr: cat.nameAr, nameEn: cat.nameEn };
+                    const isDirty = d.nameAr !== cat.nameAr || d.nameEn !== cat.nameEn;
+                    const isSaving = catSaving === cat.id;
+                    return (
+                      <motion.div
+                        key={cat.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.04 }}
+                        className="grid grid-cols-[auto_1fr_1fr_auto] gap-0 items-center group hover:bg-white/[0.02] transition-colors"
+                      >
+                        <div className="px-4 py-3 w-12">
+                          <span className="text-xs font-mono text-muted-foreground/50">{idx + 1}</span>
+                        </div>
+
+                        {/* AR name — primary */}
+                        <div className="px-3 py-2.5">
+                          <Input
+                            dir="rtl"
+                            value={d.nameAr}
+                            onChange={(e) => setCatEditData((prev) => ({ ...prev, [cat.id]: { ...d, nameAr: e.target.value } }))}
+                            className="h-9 rounded-lg bg-primary/[0.04] border-primary/15 text-sm focus-visible:border-primary/50 focus-visible:ring-primary/20 text-white"
+                          />
+                        </div>
+
+                        {/* EN name — secondary */}
+                        <div className="px-3 py-2.5">
+                          <Input
+                            value={d.nameEn}
+                            onChange={(e) => setCatEditData((prev) => ({ ...prev, [cat.id]: { ...d, nameEn: e.target.value } }))}
+                            className="h-9 rounded-lg bg-black/20 border-white/8 text-sm text-white/80"
+                          />
+                        </div>
+
+                        {/* Actions */}
+                        <div className="px-3 py-2.5 w-32 flex items-center gap-1.5 justify-end">
+                          <Button
+                            size="sm"
+                            variant={isDirty ? "default" : "ghost"}
+                            className={`rounded-lg gap-1 h-8 px-3 text-xs transition-all ${isDirty ? "shadow-lg shadow-primary/20" : "opacity-0 group-hover:opacity-100"}`}
+                            onClick={() => saveCategory(cat.id)}
+                            disabled={isSaving || !d.nameAr.trim() || !d.nameEn.trim()}
+                          >
+                            {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                            {isRTL ? "حفظ" : "Save"}
+                          </Button>
+                          <button
+                            onClick={() => deleteCategory(cat.id)}
+                            className="p-1.5 rounded-lg hover:bg-red-500/10 hover:text-red-400 text-muted-foreground transition-colors opacity-0 group-hover:opacity-100"
+                            title={isRTL ? "حذف التصنيف" : "Delete category"}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {/* Footer note */}
+                <div className="px-5 py-3 border-t border-white/5 bg-white/[0.01]">
+                  <p className="text-[10px] text-muted-foreground/50">
+                    {isRTL
+                      ? "حفظ تصنيف يُحدّث تلقائيًا اسمه في جميع الفيديوهات المرتبطة به."
+                      : "Saving a category automatically renames it across all linked videos."}
+                  </p>
                 </div>
               </div>
             )}

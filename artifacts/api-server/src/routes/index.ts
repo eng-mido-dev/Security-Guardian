@@ -6,6 +6,7 @@ import activityRouter from "./activity";
 import adminRouter from "./admin";
 import scanRouter from "./scan";
 import reportsRouter from "./reports";
+import categoriesRouter from "./categories";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(activityRouter);
 router.use(adminRouter);
 router.use(scanRouter);
 router.use(reportsRouter);
+router.use(categoriesRouter);
 
 export default router;
