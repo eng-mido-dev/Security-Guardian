@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/context/LangContext";
 import { api, type ApiVideo, type AdminUser, type ApiReport, type ApiCategory, type ApiNotification, type ApiAdminLog, type ApiAnalytics } from "@/lib/api";
+import { translateToEnglish, translateToArabic } from "@/lib/translate";
 import {
   Shield, Users, FileText, PlayCircle, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
@@ -154,6 +155,16 @@ export default function AdminDashboard() {
   const arTitleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const arDescDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Universal AR→EN auto-translate states ──
+  const [newCatTranslating, setNewCatTranslating] = useState(false);
+  const [catEditTranslating, setCatEditTranslating] = useState<number | null>(null);
+  const [notifTitleTranslating, setNotifTitleTranslating] = useState(false);
+  const [notifBodyTranslating, setNotifBodyTranslating] = useState(false);
+  const catNameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const catEditDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notifTitleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notifBodyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     api.videos.list().then(setVideos).finally(() => setVideosLoading(false));
     api.admin.users().then(setUsers).catch(() => {});
@@ -263,21 +274,6 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const translateText = async (text: string, targetLang: "ar" | "en"): Promise<string> => {
-    try {
-      const endpoint = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
-      const res = await fetch(endpoint);
-      if (!res.ok) return "";
-      const data = await res.json();
-      return (data as string[][][])[0]?.map((chunk) => chunk[0]).join("") ?? "";
-    } catch {
-      return "";
-    }
-  };
-
-  const translateToArabic = (text: string) => translateText(text, "ar");
-  const translateToEnglish = (text: string) => translateText(text, "en");
-
   const fetchYouTubeTitle = useCallback(async (url: string, target: "new" | "edit") => {
     try {
       setTitleFetching(true);
@@ -363,6 +359,62 @@ export default function AdminDashboard() {
     },
     []
   );
+
+  /* ── Category: new nameAr → nameEn ── */
+  const handleNewCatArChange = useCallback((nameAr: string) => {
+    setNewCat((p) => ({ ...p, nameAr }));
+    if (catNameDebounceRef.current) clearTimeout(catNameDebounceRef.current);
+    if (!nameAr.trim()) return;
+    catNameDebounceRef.current = setTimeout(async () => {
+      setNewCatTranslating(true);
+      try {
+        const translated = await translateToEnglish(nameAr);
+        if (translated) setNewCat((p) => ({ ...p, nameEn: translated }));
+      } catch { } finally { setNewCatTranslating(false); }
+    }, 500);
+  }, []);
+
+  /* ── Category: edit nameAr → nameEn ── */
+  const handleCatEditArChange = useCallback((id: number, d: { nameAr: string; nameEn: string }, nameAr: string) => {
+    setCatEditData((prev) => ({ ...prev, [id]: { ...d, nameAr } }));
+    if (catEditDebounceRef.current) clearTimeout(catEditDebounceRef.current);
+    if (!nameAr.trim()) return;
+    catEditDebounceRef.current = setTimeout(async () => {
+      setCatEditTranslating(id);
+      try {
+        const translated = await translateToEnglish(nameAr);
+        if (translated) setCatEditData((prev) => ({ ...prev, [id]: { ...prev[id], nameEn: translated } }));
+      } catch { } finally { setCatEditTranslating(null); }
+    }, 500);
+  }, []);
+
+  /* ── Notification: titleAr → titleEn ── */
+  const handleNotifTitleArChange = useCallback((titleAr: string) => {
+    setNewNotif((p) => ({ ...p, titleAr }));
+    if (notifTitleDebounceRef.current) clearTimeout(notifTitleDebounceRef.current);
+    if (!titleAr.trim()) return;
+    notifTitleDebounceRef.current = setTimeout(async () => {
+      setNotifTitleTranslating(true);
+      try {
+        const translated = await translateToEnglish(titleAr);
+        if (translated) setNewNotif((p) => ({ ...p, titleEn: translated }));
+      } catch { } finally { setNotifTitleTranslating(false); }
+    }, 500);
+  }, []);
+
+  /* ── Notification: bodyAr → bodyEn ── */
+  const handleNotifBodyArChange = useCallback((bodyAr: string) => {
+    setNewNotif((p) => ({ ...p, bodyAr }));
+    if (notifBodyDebounceRef.current) clearTimeout(notifBodyDebounceRef.current);
+    if (!bodyAr.trim()) return;
+    notifBodyDebounceRef.current = setTimeout(async () => {
+      setNotifBodyTranslating(true);
+      try {
+        const translated = await translateToEnglish(bodyAr);
+        if (translated) setNewNotif((p) => ({ ...p, bodyEn: translated }));
+      } catch { } finally { setNotifBodyTranslating(false); }
+    }, 500);
+  }, []);
 
   const handleUrlChange = useCallback(
     (url: string, target: "new" | "edit") => {
@@ -1191,20 +1243,27 @@ export default function AdminDashboard() {
                   <Input
                     dir="rtl"
                     value={newCat.nameAr}
-                    onChange={(e) => setNewCat((p) => ({ ...p, nameAr: e.target.value }))}
+                    onChange={(e) => handleNewCatArChange(e.target.value)}
                     placeholder="مثال: أمان كلمات المرور"
                     className="h-10 rounded-xl bg-black/40 border-primary/20 text-sm focus-visible:border-primary/50 focus-visible:ring-primary/30"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                     {isRTL ? "الاسم بالإنجليزية" : "English Name"}
+                    {newCatTranslating && (
+                      <span className="flex items-center gap-1 text-primary/50">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span className="text-[9px] normal-case tracking-normal">{isRTL ? "ترجمة..." : "Translating..."}</span>
+                      </span>
+                    )}
                   </Label>
                   <Input
                     value={newCat.nameEn}
                     onChange={(e) => setNewCat((p) => ({ ...p, nameEn: e.target.value }))}
-                    placeholder="e.g. Password Security"
+                    placeholder={newCatTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : "e.g. Password Security"}
                     className="h-10 rounded-xl bg-black/30 border-white/10 text-sm"
+                    readOnly={newCatTranslating}
                   />
                 </div>
               </div>
@@ -1212,7 +1271,7 @@ export default function AdminDashboard() {
                 size="sm"
                 className="rounded-xl gap-1.5"
                 onClick={createCategory}
-                disabled={newCatSaving || !newCat.nameAr.trim() || !newCat.nameEn.trim()}
+                disabled={newCatSaving || !newCat.nameAr.trim()}
               >
                 {newCatSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 {isRTL ? "إضافة" : "Add Category"}
@@ -1268,18 +1327,23 @@ export default function AdminDashboard() {
                           <Input
                             dir="rtl"
                             value={d.nameAr}
-                            onChange={(e) => setCatEditData((prev) => ({ ...prev, [cat.id]: { ...d, nameAr: e.target.value } }))}
+                            onChange={(e) => handleCatEditArChange(cat.id, d, e.target.value)}
                             className="h-9 rounded-lg bg-primary/[0.04] border-primary/15 text-sm focus-visible:border-primary/50 focus-visible:ring-primary/20 text-white"
                           />
                         </div>
 
-                        {/* EN name — secondary */}
-                        <div className="px-3 py-2.5">
+                        {/* EN name — secondary, auto-translated */}
+                        <div className="px-3 py-2.5 relative">
                           <Input
                             value={d.nameEn}
                             onChange={(e) => setCatEditData((prev) => ({ ...prev, [cat.id]: { ...d, nameEn: e.target.value } }))}
-                            className="h-9 rounded-lg bg-black/20 border-white/8 text-sm text-white/80"
+                            placeholder={catEditTranslating === cat.id ? (isRTL ? "جاري الترجمة..." : "Translating...") : undefined}
+                            className="h-9 rounded-lg bg-black/20 border-white/8 text-sm text-white/80 pe-8"
+                            readOnly={catEditTranslating === cat.id}
                           />
+                          {catEditTranslating === cat.id && (
+                            <Loader2 className="absolute end-5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-primary/50 pointer-events-none" />
+                          )}
                         </div>
 
                         {/* Actions */}
@@ -1633,13 +1697,31 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-primary/60 uppercase tracking-wider">{isRTL ? "العنوان بالعربية ★" : "Arabic Title ★"}</Label>
-                  <Input dir="rtl" value={newNotif.titleAr} onChange={(e) => setNewNotif((p) => ({ ...p, titleAr: e.target.value }))}
-                    placeholder="مثال: دورة جديدة متاحة!" className="h-9 rounded-xl bg-black/40 border-primary/20 text-sm" />
+                  <Input
+                    dir="rtl"
+                    value={newNotif.titleAr}
+                    onChange={(e) => handleNotifTitleArChange(e.target.value)}
+                    placeholder="مثال: دورة جديدة متاحة!"
+                    className="h-9 rounded-xl bg-black/40 border-primary/20 text-sm"
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">{isRTL ? "العنوان بالإنجليزية" : "English Title"}</Label>
-                  <Input value={newNotif.titleEn} onChange={(e) => setNewNotif((p) => ({ ...p, titleEn: e.target.value }))}
-                    placeholder="e.g. New Course Available!" className="h-9 rounded-xl bg-black/30 border-white/10 text-sm" />
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    {isRTL ? "العنوان بالإنجليزية" : "English Title"}
+                    {notifTitleTranslating && (
+                      <span className="flex items-center gap-1 text-primary/50">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span className="text-[9px] normal-case tracking-normal">{isRTL ? "ترجمة..." : "Translating..."}</span>
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    value={newNotif.titleEn}
+                    onChange={(e) => setNewNotif((p) => ({ ...p, titleEn: e.target.value }))}
+                    placeholder={notifTitleTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : "e.g. New Course Available!"}
+                    className="h-9 rounded-xl bg-black/30 border-white/10 text-sm"
+                    readOnly={notifTitleTranslating}
+                  />
                 </div>
               </div>
 
@@ -1649,20 +1731,29 @@ export default function AdminDashboard() {
                   <textarea
                     dir="rtl"
                     value={newNotif.bodyAr}
-                    onChange={(e) => setNewNotif((p) => ({ ...p, bodyAr: e.target.value }))}
+                    onChange={(e) => handleNotifBodyArChange(e.target.value)}
                     placeholder={isRTL ? "اكتب رسالتك هنا..." : "Write your message in Arabic..."}
                     rows={3}
                     className="w-full rounded-xl bg-black/40 border border-primary/20 text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 resize-none"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">{isRTL ? "نص الرسالة بالإنجليزية" : "English Body"}</Label>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    {isRTL ? "نص الرسالة بالإنجليزية" : "English Body"}
+                    {notifBodyTranslating && (
+                      <span className="flex items-center gap-1 text-primary/50">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span className="text-[9px] normal-case tracking-normal">{isRTL ? "ترجمة..." : "Translating..."}</span>
+                      </span>
+                    )}
+                  </Label>
                   <textarea
                     value={newNotif.bodyEn}
                     onChange={(e) => setNewNotif((p) => ({ ...p, bodyEn: e.target.value }))}
-                    placeholder="Write your message in English..."
+                    placeholder={notifBodyTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : "Write your message in English..."}
                     rows={3}
                     className="w-full rounded-xl bg-black/30 border border-white/10 text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none"
+                    readOnly={notifBodyTranslating}
                   />
                 </div>
               </div>
