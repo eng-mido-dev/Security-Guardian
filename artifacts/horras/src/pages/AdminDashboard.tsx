@@ -96,11 +96,13 @@ export default function AdminDashboard() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", titleAr: "", url: "", category: "", duration: "", description: "", descriptionAr: "" });
   const [titleFetching, setTitleFetching] = useState(false);
+  const [titleTranslating, setTitleTranslating] = useState(false);
   const [descTranslating, setDescTranslating] = useState(false);
   const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users">("videos");
   const [durationFetching, setDurationFetching] = useState(false);
   const cancelFetchRef = useRef<(() => void) | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -210,6 +212,26 @@ export default function AdminDashboard() {
       setTitleFetching(false);
     }
   }, []);
+
+  const handleTitleChange = useCallback(
+    (titleEn: string, target: "new" | "edit") => {
+      if (target === "new") setNewVideo((p) => ({ ...p, title: titleEn }));
+      else setEditData((p) => ({ ...p, title: titleEn }));
+      if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+      if (!titleEn.trim()) return;
+      titleDebounceRef.current = setTimeout(async () => {
+        setTitleTranslating(true);
+        try {
+          const translated = await translateToArabic(titleEn);
+          if (translated) {
+            if (target === "new") setNewVideo((p) => ({ ...p, titleAr: translated }));
+            else setEditData((p) => ({ ...p, titleAr: translated }));
+          }
+        } catch { } finally { setTitleTranslating(false); }
+      }, 900);
+    },
+    [translateToArabic]
+  );
 
   const handleDescriptionChange = useCallback(
     (desc: string, target: "new" | "edit") => {
@@ -396,26 +418,12 @@ export default function AdminDashboard() {
             <AnimatePresence>
               {isAddingNew && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-4 overflow-hidden">
-                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 space-y-4">
+                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 space-y-5">
                     <h4 className="font-bold text-primary text-sm">{isRTL ? "فيديو جديد" : "New Video"}</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground flex items-center gap-2">
-                          {isRTL ? "العنوان (إنجليزي)" : "Title (English)"}
-                          {titleFetching && (
-                            <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              {isRTL ? "ترجمة تلقائية..." : "Auto-translating..."}
-                            </span>
-                          )}
-                        </Label>
-                        <Input value={newVideo.title} onChange={(e) => setNewVideo((p) => ({ ...p, title: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" placeholder={titleFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : ""} readOnly={titleFetching} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">{isRTL ? "العنوان (عربي - يُملأ تلقائياً)" : "Title (Arabic - auto-filled)"}</Label>
-                        <Input value={newVideo.titleAr || ""} onChange={(e) => setNewVideo((p) => ({ ...p, titleAr: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" dir="rtl" placeholder={titleFetching ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "العنوان بالعربية" : "Arabic title")} readOnly={titleFetching} />
-                      </div>
-                      <div className="space-y-1.5">
+
+                    {/* ── Technical Details Row ── */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1.5 sm:col-span-1">
                         <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
                         <div className="relative">
                           <Youtube className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none z-10" />
@@ -433,42 +441,90 @@ export default function AdminDashboard() {
                         <Input value={newVideo.category} onChange={(e) => setNewVideo((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">
-                          {isRTL ? "المدة" : "Duration"}
-                        </Label>
+                        <Label className="text-xs text-muted-foreground">{isRTL ? "المدة" : "Duration"}</Label>
                         <Input
                           value={durationFetching ? "" : (newVideo.duration || "")}
                           onChange={(e) => setNewVideo((p) => ({ ...p, duration: e.target.value }))}
                           className="h-10 rounded-xl bg-black/40 border-white/10 text-sm"
-                          placeholder={durationFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : "60s"}
+                          placeholder={durationFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : "e.g. 4:30"}
                           readOnly={durationFetching}
                         />
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
-                      <textarea
-                        value={newVideo.description || ""}
-                        onChange={(e) => handleDescriptionChange(e.target.value, "new")}
-                        rows={2}
-                        placeholder={isRTL ? "وصف قصير عن محتوى الفيديو..." : "Short description about the video content..."}
-                        className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
-                      />
+
+                    {/* ── Bilingual Content: EN | AR ── */}
+                    <div className="rounded-xl border border-white/[0.07] bg-black/20 overflow-hidden">
+                      {/* Header row */}
+                      <div className="grid grid-cols-2 border-b border-white/[0.07]">
+                        <div className="flex items-center gap-2 px-4 py-2.5 border-r border-white/[0.07]">
+                          <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">EN</span>
+                          <span className="text-[10px] text-white/30">{isRTL ? "الإنجليزية" : "English"}</span>
+                          {titleFetching && <Loader2 className="w-3 h-3 animate-spin text-primary/50 ms-auto" />}
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-2.5">
+                          <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">AR</span>
+                          <span className="text-[10px] text-white/30">{isRTL ? "العربية" : "Arabic"}</span>
+                          {(titleTranslating || descTranslating) && (
+                            <span className="flex items-center gap-1 ms-auto">
+                              <Loader2 className="w-3 h-3 animate-spin text-primary/50" />
+                              <span className="text-[9px] text-primary/50">{isRTL ? "ترجمة..." : "Translating..."}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Title row */}
+                      <div className="grid grid-cols-2 border-b border-white/[0.07]">
+                        <div className="p-3 border-r border-white/[0.07] space-y-1">
+                          <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "العنوان" : "Title"}</Label>
+                          <Input
+                            value={newVideo.title}
+                            onChange={(e) => handleTitleChange(e.target.value, "new")}
+                            className="h-9 rounded-lg bg-black/30 border-white/10 text-sm"
+                            placeholder={titleFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : (isRTL ? "Title in English" : "Title in English")}
+                            readOnly={titleFetching}
+                          />
+                        </div>
+                        <div className="p-3 space-y-1">
+                          <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "العنوان" : "Title"}</Label>
+                          <Input
+                            value={newVideo.titleAr || ""}
+                            onChange={(e) => setNewVideo((p) => ({ ...p, titleAr: e.target.value }))}
+                            className="h-9 rounded-lg bg-black/30 border-white/10 text-sm"
+                            dir="rtl"
+                            placeholder={titleTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "العنوان بالعربية" : "العنوان بالعربية")}
+                            readOnly={titleTranslating}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Description row */}
+                      <div className="grid grid-cols-2">
+                        <div className="p-3 border-r border-white/[0.07] space-y-1">
+                          <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
+                          <textarea
+                            value={newVideo.description || ""}
+                            onChange={(e) => handleDescriptionChange(e.target.value, "new")}
+                            rows={3}
+                            placeholder={isRTL ? "Short description..." : "Short description..."}
+                            className="w-full rounded-lg bg-black/30 border border-white/10 text-sm text-white placeholder:text-white/25 px-3 py-2 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                          />
+                        </div>
+                        <div className="p-3 space-y-1">
+                          <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
+                          <textarea
+                            value={newVideo.descriptionAr || ""}
+                            onChange={(e) => setNewVideo((p) => ({ ...p, descriptionAr: e.target.value }))}
+                            rows={3}
+                            dir="rtl"
+                            placeholder={descTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "وصف بالعربية..." : "وصف بالعربية...")}
+                            readOnly={descTranslating}
+                            className="w-full rounded-lg bg-black/30 border border-white/10 text-sm text-white placeholder:text-white/25 px-3 py-2 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground flex items-center gap-2">
-                        {isRTL ? "الوصف (عربي - يُملأ تلقائياً)" : "Description (Arabic - auto-filled)"}
-                        {descTranslating && <span className="text-primary text-[10px]">{isRTL ? "جاري الترجمة..." : "Translating..."}</span>}
-                      </Label>
-                      <textarea
-                        value={newVideo.descriptionAr || ""}
-                        onChange={(e) => setNewVideo((p) => ({ ...p, descriptionAr: e.target.value }))}
-                        rows={2}
-                        dir="rtl"
-                        placeholder={isRTL ? "وصف بالعربية..." : "Arabic description..."}
-                        className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
-                      />
-                    </div>
+
                     <div className="flex gap-3 justify-end">
                       <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setIsAddingNew(false); cancelFetchRef.current?.(); }}><X className="w-4 h-4" /></Button>
                       <Button size="sm" className="rounded-xl gap-1.5" onClick={addVideo} disabled={!newVideo.title}>
@@ -495,24 +551,9 @@ export default function AdminDashboard() {
                 {videos.map((video) => (
                   <motion.div key={video.id} layout className="bg-[#0D0D0F] border border-white/5 rounded-2xl overflow-hidden">
                     {editingId === video.id ? (
-                      <div className="p-5 space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground flex items-center gap-2">
-                              {isRTL ? "العنوان (إنجليزي)" : "Title (English)"}
-                              {titleFetching && (
-                                <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  {isRTL ? "ترجمة..." : "Translating..."}
-                                </span>
-                              )}
-                            </Label>
-                            <Input value={editData.title ?? video.title} onChange={(e) => setEditData((p) => ({ ...p, title: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{isRTL ? "العنوان (عربي)" : "Title (Arabic)"}</Label>
-                            <Input value={editData.titleAr ?? video.titleAr ?? ""} onChange={(e) => setEditData((p) => ({ ...p, titleAr: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" dir="rtl" placeholder={titleFetching ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "العنوان بالعربية" : "Arabic title")} readOnly={titleFetching} />
-                          </div>
+                      <div className="p-5 space-y-5">
+                        {/* ── Technical Details Row ── */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
                             <div className="relative">
@@ -530,43 +571,90 @@ export default function AdminDashboard() {
                             <Label className="text-xs text-muted-foreground">{isRTL ? "التصنيف" : "Category"}</Label>
                             <Input value={editData.category ?? video.category} onChange={(e) => setEditData((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
                           </div>
-                          <div className="space-y-1.5 sm:col-span-2">
-                            <Label className="text-xs text-muted-foreground">{isRTL ? "الوصف (اختياري)" : "Description (optional)"}</Label>
-                            <textarea
-                              value={editData.description ?? (video.description || "")}
-                              onChange={(e) => handleDescriptionChange(e.target.value, "edit")}
-                              rows={2}
-                              placeholder={isRTL ? "وصف قصير عن محتوى الفيديو..." : "Short description about the video content..."}
-                              className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
-                            />
-                          </div>
-                          <div className="space-y-1.5 sm:col-span-2">
-                            <Label className="text-xs text-muted-foreground flex items-center gap-2">
-                              {isRTL ? "الوصف (عربي - يُملأ تلقائياً)" : "Description (Arabic - auto-filled)"}
-                              {descTranslating && <span className="text-primary text-[10px]">{isRTL ? "جاري الترجمة..." : "Translating..."}</span>}
-                            </Label>
-                            <textarea
-                              value={editData.descriptionAr ?? (video.descriptionAr || "")}
-                              onChange={(e) => setEditData((p) => ({ ...p, descriptionAr: e.target.value }))}
-                              rows={2}
-                              dir="rtl"
-                              placeholder={isRTL ? "وصف بالعربية..." : "Arabic description..."}
-                              className="w-full rounded-xl bg-black/40 border border-white/10 text-sm text-white placeholder:text-white/30 px-3 py-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
-                            />
-                          </div>
                           <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">
-                              {isRTL ? "المدة" : "Duration"}
-                            </Label>
+                            <Label className="text-xs text-muted-foreground">{isRTL ? "المدة" : "Duration"}</Label>
                             <Input
                               value={durationFetching ? "" : (editData.duration ?? video.duration)}
                               onChange={(e) => setEditData((p) => ({ ...p, duration: e.target.value }))}
                               className="h-10 rounded-xl bg-black/40 border-white/10 text-sm"
-                              placeholder={durationFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : "60s"}
+                              placeholder={durationFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : "e.g. 4:30"}
                               readOnly={durationFetching}
                             />
                           </div>
                         </div>
+
+                        {/* ── Bilingual Content: EN | AR ── */}
+                        <div className="rounded-xl border border-white/[0.07] bg-black/20 overflow-hidden">
+                          {/* Header row */}
+                          <div className="grid grid-cols-2 border-b border-white/[0.07]">
+                            <div className="flex items-center gap-2 px-4 py-2.5 border-r border-white/[0.07]">
+                              <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">EN</span>
+                              <span className="text-[10px] text-white/30">{isRTL ? "الإنجليزية" : "English"}</span>
+                              {titleFetching && <Loader2 className="w-3 h-3 animate-spin text-primary/50 ms-auto" />}
+                            </div>
+                            <div className="flex items-center gap-2 px-4 py-2.5">
+                              <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">AR</span>
+                              <span className="text-[10px] text-white/30">{isRTL ? "العربية" : "Arabic"}</span>
+                              {(titleTranslating || descTranslating) && (
+                                <span className="flex items-center gap-1 ms-auto">
+                                  <Loader2 className="w-3 h-3 animate-spin text-primary/50" />
+                                  <span className="text-[9px] text-primary/50">{isRTL ? "ترجمة..." : "Translating..."}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Title row */}
+                          <div className="grid grid-cols-2 border-b border-white/[0.07]">
+                            <div className="p-3 border-r border-white/[0.07] space-y-1">
+                              <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "العنوان" : "Title"}</Label>
+                              <Input
+                                value={editData.title ?? video.title}
+                                onChange={(e) => handleTitleChange(e.target.value, "edit")}
+                                className="h-9 rounded-lg bg-black/30 border-white/10 text-sm"
+                                readOnly={titleFetching}
+                              />
+                            </div>
+                            <div className="p-3 space-y-1">
+                              <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "العنوان" : "Title"}</Label>
+                              <Input
+                                value={editData.titleAr ?? video.titleAr ?? ""}
+                                onChange={(e) => setEditData((p) => ({ ...p, titleAr: e.target.value }))}
+                                className="h-9 rounded-lg bg-black/30 border-white/10 text-sm"
+                                dir="rtl"
+                                placeholder={titleTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "العنوان بالعربية" : "العنوان بالعربية")}
+                                readOnly={titleTranslating}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Description row */}
+                          <div className="grid grid-cols-2">
+                            <div className="p-3 border-r border-white/[0.07] space-y-1">
+                              <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "الوصف" : "Description"}</Label>
+                              <textarea
+                                value={editData.description ?? (video.description || "")}
+                                onChange={(e) => handleDescriptionChange(e.target.value, "edit")}
+                                rows={3}
+                                placeholder={isRTL ? "Short description..." : "Short description..."}
+                                className="w-full rounded-lg bg-black/30 border border-white/10 text-sm text-white placeholder:text-white/25 px-3 py-2 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                              />
+                            </div>
+                            <div className="p-3 space-y-1">
+                              <Label className="text-[10px] text-white/30 uppercase tracking-wider">{isRTL ? "الوصف" : "Description"}</Label>
+                              <textarea
+                                value={editData.descriptionAr ?? (video.descriptionAr || "")}
+                                onChange={(e) => setEditData((p) => ({ ...p, descriptionAr: e.target.value }))}
+                                rows={3}
+                                dir="rtl"
+                                placeholder={descTranslating ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "وصف بالعربية..." : "وصف بالعربية...")}
+                                readOnly={descTranslating}
+                                className="w-full rounded-lg bg-black/30 border border-white/10 text-sm text-white placeholder:text-white/25 px-3 py-2 resize-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="flex gap-3 justify-end">
                           <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setEditingId(null); setEditData({}); cancelFetchRef.current?.(); }}><X className="w-4 h-4" /></Button>
                           <Button size="sm" className="rounded-xl gap-1.5" onClick={() => saveEdit(video.id)}><Save className="w-4 h-4" /> {isRTL ? "حفظ" : "Save"}</Button>
