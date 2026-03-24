@@ -92,16 +92,42 @@ export default function Login() {
           <p className="text-muted-foreground text-sm">{t("login.subtitle")}</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5" noValidate>
+        <form
+          onSubmit={handleLogin}
+          className="space-y-5"
+          noValidate
+          autoComplete="off"
+        >
+          {/* Honeypot — attracts browser autofill away from real fields */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            aria-hidden="true"
+            tabIndex={-1}
+            readOnly
+            style={{
+              position: "absolute",
+              opacity: 0,
+              top: 0,
+              left: 0,
+              width: 0,
+              height: 0,
+              pointerEvents: "none",
+              overflow: "hidden",
+            }}
+          />
+
           <div className="space-y-2">
-            <Label htmlFor="email">{t("login.email")}</Label>
+            <Label htmlFor="hrrs_login_contact">{t("login.email")}</Label>
             <div className="relative" dir="ltr">
               <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
-                id="email"
+                id="hrrs_login_contact"
+                name="hrrs_login_contact"
                 type="text"
                 inputMode="email"
-                autoComplete="new-password"
+                autoComplete="off"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
                 className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.email ? "border-destructive focus-visible:ring-destructive" : "border-white/10"}`}
@@ -118,7 +144,7 @@ export default function Login() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">{t("login.password")}</Label>
+              <Label htmlFor="hrrs_login_secret">{t("login.password")}</Label>
               <span className="text-xs text-primary cursor-pointer hover:underline">{t("login.forgotPassword")}</span>
             </div>
             <div className="relative" dir="ltr">
@@ -130,9 +156,10 @@ export default function Login() {
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
               <Input
-                id="password"
+                id="hrrs_login_secret"
+                name="hrrs_login_secret"
                 type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
                 className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : "border-white/10"}`}
@@ -168,10 +195,9 @@ export default function Login() {
           </Link>
         </div>
 
-        {/* Hint for admin */}
         <div className="mt-4 text-center">
           <p className="text-xs text-muted-foreground/40">
-            {isRTL ? "حساب المدير: admin@h.com / Admin" : "Admin: admin@h.com / Admin"}
+            {isRTL ? "حساب المدير: admin@horras.com / Admin" : "Admin: admin@horras.com / Admin"}
           </p>
         </div>
       </motion.div>

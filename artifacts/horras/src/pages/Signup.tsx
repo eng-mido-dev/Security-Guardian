@@ -100,13 +100,40 @@ export default function Signup() {
           <p className="text-muted-foreground text-sm">{t("signup.subtitle")}</p>
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-4" noValidate>
+        <form
+          onSubmit={handleSignup}
+          className="space-y-4"
+          noValidate
+          autoComplete="off"
+        >
+          {/* Honeypot — attracts browser autofill away from real fields */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            aria-hidden="true"
+            tabIndex={-1}
+            readOnly
+            style={{
+              position: "absolute",
+              opacity: 0,
+              top: 0,
+              left: 0,
+              width: 0,
+              height: 0,
+              pointerEvents: "none",
+              overflow: "hidden",
+            }}
+          />
+
+          {/* Full Name */}
           <div className="space-y-2">
-            <Label htmlFor="name">{t("signup.name")}</Label>
+            <Label htmlFor="hrrs_reg_display_nm">{t("signup.name")}</Label>
             <div className="relative" dir="ltr">
               <User className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
-                id="name"
+                id="hrrs_reg_display_nm"
+                name="hrrs_reg_display_nm"
                 type="text"
                 autoComplete="off"
                 value={name}
@@ -123,16 +150,17 @@ export default function Signup() {
             </AnimatePresence>
           </div>
 
+          {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email">{t("signup.email")}</Label>
+            <Label htmlFor="hrrs_reg_contact_addr">{t("signup.email")}</Label>
             <div className="relative" dir="ltr">
               <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
-                id="email"
+                id="hrrs_reg_contact_addr"
+                name="hrrs_reg_contact_addr"
                 type="text"
                 inputMode="email"
-                autoComplete="new-password"
-                list="no-autocomplete-email"
+                autoComplete="off"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
                 className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.email ? "border-destructive" : "border-white/10"} focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:border-primary/50`}
@@ -147,14 +175,16 @@ export default function Signup() {
             </AnimatePresence>
           </div>
 
+          {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="password">{t("signup.password")}</Label>
+            <Label htmlFor="hrrs_reg_secret_1">{t("signup.password")}</Label>
             <div className="relative" dir="ltr">
               <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
               <Input
-                id="password"
+                id="hrrs_reg_secret_1"
+                name="hrrs_reg_secret_1"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 value={password}
@@ -178,14 +208,16 @@ export default function Signup() {
             </AnimatePresence>
           </div>
 
+          {/* Confirm Password */}
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">{t("signup.confirmPassword")}</Label>
+            <Label htmlFor="hrrs_reg_secret_2">{t("signup.confirmPassword")}</Label>
             <div className="relative" dir="ltr">
               <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors z-10">
                 {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
               <Input
-                id="confirmPassword"
+                id="hrrs_reg_secret_2"
+                name="hrrs_reg_secret_2"
                 type={showConfirm ? "text" : "password"}
                 autoComplete="new-password"
                 value={confirmPassword}
