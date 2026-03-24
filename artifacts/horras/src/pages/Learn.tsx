@@ -176,7 +176,7 @@ export default function Learn() {
               </div>
 
               <h3 className="font-bold text-sm mb-1 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
-                {video.title}
+                {isRTL && video.titleAr ? video.titleAr : video.title}
               </h3>
               <p className="text-xs text-muted-foreground">
                 {video.category ? (isRTL ? `تصنيف: ${video.category}` : `Category: ${video.category}`) : (isRTL ? "فيديو تعليمي" : "Educational video")}
@@ -200,6 +200,7 @@ export default function Learn() {
           isOpen={videoModalOpen}
           onClose={() => { setVideoModalOpen(false); setActiveVideo(null); }}
           title={activeVideo.title}
+          titleAr={activeVideo.titleAr}
           url={activeVideo.url}
           category={activeVideo.category}
           description={activeVideo.description}

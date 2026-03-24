@@ -336,28 +336,29 @@ export default function SecurityTest() {
               </div>
 
               <div className="flex flex-col md:flex-row items-center gap-6 mb-5">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <svg width="128" height="128" viewBox="0 0 160 160" className="-rotate-90">
-                    <circle cx="80" cy="80" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="12" />
-                    <circle cx="80" cy="80" r={radius} fill="none" className={ringColor} strokeWidth="12"
-                      strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDash}
-                      style={{ transition: "stroke-dashoffset 1s ease" }} />
-                  </svg>
-                  <div className="text-center -mt-[112px] mb-[64px]">
-                    <span className={`text-4xl font-black ${scoreColor}`}>{finalScore}%</span>
-                    <p className="text-muted-foreground text-xs mt-0.5">
-                      {finalCorrect} / {QUESTIONS.length} {isRTL ? "صحيحة" : "correct"}
-                    </p>
-                  </div>
-                  <div className="flex gap-5 text-center text-xs mt-1">
-                    <div>
-                      <div className="text-green-400 font-bold text-lg">{finalCorrect}</div>
-                      <div className="text-muted-foreground">{isRTL ? "صحيحة" : "Correct"}</div>
+                <div className="flex flex-col items-center gap-3 shrink-0">
+                  <div className="relative w-32 h-32">
+                    <svg width="128" height="128" viewBox="0 0 160 160" className="-rotate-90 w-full h-full">
+                      <circle cx="80" cy="80" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+                      <circle cx="80" cy="80" r={radius} fill="none" className={ringColor} strokeWidth="14"
+                        strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDash}
+                        style={{ transition: "stroke-dashoffset 1.2s ease" }} />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className={`text-3xl font-black leading-none ${scoreColor}`}>{finalScore}%</span>
+                      <p className="text-muted-foreground text-[10px] mt-1 font-medium">
+                        {finalCorrect}/{QUESTIONS.length} {isRTL ? "صح" : "correct"}
+                      </p>
                     </div>
-                    <div className="w-px bg-white/10" />
-                    <div>
-                      <div className="text-red-400 font-bold text-lg">{QUESTIONS.length - finalCorrect}</div>
-                      <div className="text-muted-foreground">{isRTL ? "خاطئة" : "Wrong"}</div>
+                  </div>
+                  <div className="flex gap-5 text-center text-xs">
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2">
+                      <div className="text-green-400 font-black text-lg">{finalCorrect}</div>
+                      <div className="text-muted-foreground text-[10px]">{isRTL ? "صحيحة" : "Correct"}</div>
+                    </div>
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+                      <div className="text-red-400 font-black text-lg">{QUESTIONS.length - finalCorrect}</div>
+                      <div className="text-muted-foreground text-[10px]">{isRTL ? "خاطئة" : "Wrong"}</div>
                     </div>
                   </div>
                 </div>

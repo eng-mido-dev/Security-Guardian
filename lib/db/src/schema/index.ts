@@ -14,6 +14,7 @@ export const usersTable = pgTable("users", {
 export const videosTable = pgTable("videos", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  titleAr: text("title_ar").notNull().default(""),
   url: text("url").notNull().default(""),
   category: text("category").notNull().default(""),
   duration: text("duration").notNull().default("60s"),

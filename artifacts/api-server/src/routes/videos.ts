@@ -14,7 +14,7 @@ router.get("/videos", async (_req, res) => {
 });
 
 router.post("/videos", authMiddleware, adminMiddleware, async (req: AuthRequest, res) => {
-  const { title, url, category, duration, description } = req.body as Record<string, string>;
+  const { title, titleAr, url, category, duration, description } = req.body as Record<string, string>;
   if (!title) {
     res.status(400).json({ error: "title_required" });
     return;
@@ -24,6 +24,7 @@ router.post("/videos", authMiddleware, adminMiddleware, async (req: AuthRequest,
     .insert(videosTable)
     .values({
       title,
+      titleAr: titleAr || "",
       url: url || "",
       category: category || "",
       duration: duration || "60s",
@@ -36,11 +37,11 @@ router.post("/videos", authMiddleware, adminMiddleware, async (req: AuthRequest,
 
 router.put("/videos/:id", authMiddleware, adminMiddleware, async (req: AuthRequest, res) => {
   const id = Number(req.params.id);
-  const { title, url, category, duration, description } = req.body as Record<string, string>;
+  const { title, titleAr, url, category, duration, description } = req.body as Record<string, string>;
 
   const [video] = await db
     .update(videosTable)
-    .set({ title, url, category, duration, description: description || "" })
+    .set({ title, titleAr: titleAr || "", url, category, duration, description: description || "" })
     .where(eq(videosTable.id, id))
     .returning();
 

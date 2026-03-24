@@ -58,6 +58,7 @@ export interface ApiActivity {
 export interface ApiVideo {
   id: number;
   title: string;
+  titleAr: string;
   url: string;
   category: string;
   duration: string;

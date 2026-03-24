@@ -99,8 +99,9 @@ export default function Login() {
               <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
                 id="email"
-                type="email"
-                autoComplete="off"
+                type="text"
+                inputMode="email"
+                autoComplete="new-password"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
                 className={`h-12 rounded-xl bg-black/40 pr-10 ${errors.email ? "border-destructive focus-visible:ring-destructive" : "border-white/10"}`}

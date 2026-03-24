@@ -26,6 +26,7 @@ const INFO_CARDS = [
     ],
     links: ["مدير كلمات مرور Google", "Bitwarden"],
     linksEn: ["Google Password Manager", "Bitwarden"],
+    urls: ["https://passwords.google.com", "https://bitwarden.com"],
   },
   {
     id: "2fa",
@@ -48,6 +49,7 @@ const INFO_CARDS = [
     ],
     links: ["Google Authenticator", "Authy"],
     linksEn: ["Google Authenticator", "Authy"],
+    urls: ["https://support.google.com/accounts/answer/1066447", "https://authy.com"],
   },
   {
     id: "privacy",
@@ -70,6 +72,7 @@ const INFO_CARDS = [
     ],
     links: ["فحص خصوصية جوجل", "إعدادات خصوصية فيسبوك"],
     linksEn: ["Google Privacy Checkup", "Facebook Privacy Settings"],
+    urls: ["https://myaccount.google.com/privacy-checkup", "https://www.facebook.com/privacy/checkup"],
   },
   {
     id: "browsing",
@@ -92,6 +95,7 @@ const INFO_CARDS = [
     ],
     links: ["uBlock Origin", "Brave Browser"],
     linksEn: ["uBlock Origin", "Brave Browser"],
+    urls: ["https://ublockorigin.com", "https://brave.com"],
   },
 ];
 
@@ -188,12 +192,15 @@ export default function Tools() {
               </span>
               <div className="flex flex-wrap gap-2">
                 {(isRTL ? card.links : card.linksEn).map((link, i) => (
-                  <span
+                  <a
                     key={i}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
+                    href={card.urls[i]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium bg-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/30 border border-white/10 px-3 py-1.5 rounded-lg transition-all duration-200"
                   >
-                    {link} <ExternalLink className="w-3 h-3 opacity-50" />
-                  </span>
+                    {link} <ExternalLink className="w-3 h-3 opacity-60" />
+                  </a>
                 ))}
               </div>
             </div>

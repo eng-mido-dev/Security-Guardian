@@ -94,7 +94,7 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState<Partial<ApiVideo>>({});
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", url: "", category: "", duration: "", description: "" });
+  const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", titleAr: "", url: "", category: "", duration: "", description: "" });
   const [titleFetching, setTitleFetching] = useState(false);
   const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users">("videos");
   const [durationFetching, setDurationFetching] = useState(false);
@@ -166,6 +166,19 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const translateToArabic = async (text: string): Promise<string> => {
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ar&dt=t&q=${encodeURIComponent(text)}`;
+      const res = await fetch(url);
+      if (!res.ok) return "";
+      const data = await res.json();
+      const translated = (data as string[][][])[0]?.map((chunk) => chunk[0]).join("") ?? "";
+      return translated;
+    } catch {
+      return "";
+    }
+  };
+
   const fetchYouTubeTitle = useCallback(async (url: string, target: "new" | "edit") => {
     try {
       setTitleFetching(true);
@@ -174,10 +187,20 @@ export default function AdminDashboard() {
       if (!res.ok) return;
       const data = await res.json();
       if (data.title) {
+        const fetchedTitle = data.title as string;
+        const arabicTitle = await translateToArabic(fetchedTitle);
         if (target === "new") {
-          setNewVideo((p) => (p.title ? p : { ...p, title: data.title }));
+          setNewVideo((p) => ({
+            ...p,
+            title: p.title ? p.title : fetchedTitle,
+            titleAr: p.titleAr ? p.titleAr : (arabicTitle || fetchedTitle),
+          }));
         } else {
-          setEditData((p) => (p.title ? p : { ...p, title: data.title }));
+          setEditData((p) => ({
+            ...p,
+            title: p.title ? p.title : fetchedTitle,
+            titleAr: p.titleAr ? p.titleAr : (arabicTitle || fetchedTitle),
+          }));
         }
       }
     } catch {
@@ -232,13 +255,14 @@ export default function AdminDashboard() {
     try {
       const video = await api.videos.create({
         title: newVideo.title,
+        titleAr: newVideo.titleAr || "",
         url: newVideo.url || "",
         category: newVideo.category || "",
         duration: newVideo.duration || "60s",
         description: newVideo.description || "",
       });
       setVideos((vs) => [...vs, video]);
-      setNewVideo({ title: "", url: "", category: "", duration: "", description: "" });
+      setNewVideo({ title: "", titleAr: "", url: "", category: "", duration: "", description: "" });
       setIsAddingNew(false);
       toast({ title: isRTL ? "تم إضافة الفيديو" : "Video added" });
     } catch {
@@ -342,15 +366,19 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground flex items-center gap-2">
-                          {isRTL ? "العنوان" : "Title"}
+                          {isRTL ? "العنوان (إنجليزي)" : "Title (English)"}
                           {titleFetching && (
                             <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
                               <Loader2 className="w-3 h-3 animate-spin" />
-                              {isRTL ? "جلب العنوان تلقائياً..." : "Auto-fetching title..."}
+                              {isRTL ? "ترجمة تلقائية..." : "Auto-translating..."}
                             </span>
                           )}
                         </Label>
                         <Input value={newVideo.title} onChange={(e) => setNewVideo((p) => ({ ...p, title: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" placeholder={titleFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : ""} readOnly={titleFetching} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">{isRTL ? "العنوان (عربي - يُملأ تلقائياً)" : "Title (Arabic - auto-filled)"}</Label>
+                        <Input value={newVideo.titleAr || ""} onChange={(e) => setNewVideo((p) => ({ ...p, titleAr: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" dir="rtl" placeholder={titleFetching ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "العنوان بالعربية" : "Arabic title")} readOnly={titleFetching} />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
@@ -421,8 +449,20 @@ export default function AdminDashboard() {
                       <div className="p-5 space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{isRTL ? "العنوان" : "Title"}</Label>
+                            <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                              {isRTL ? "العنوان (إنجليزي)" : "Title (English)"}
+                              {titleFetching && (
+                                <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  {isRTL ? "ترجمة..." : "Translating..."}
+                                </span>
+                              )}
+                            </Label>
                             <Input value={editData.title ?? video.title} onChange={(e) => setEditData((p) => ({ ...p, title: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">{isRTL ? "العنوان (عربي)" : "Title (Arabic)"}</Label>
+                            <Input value={editData.titleAr ?? video.titleAr ?? ""} onChange={(e) => setEditData((p) => ({ ...p, titleAr: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" dir="rtl" placeholder={titleFetching ? (isRTL ? "جاري الترجمة..." : "Translating...") : (isRTL ? "العنوان بالعربية" : "Arabic title")} readOnly={titleFetching} />
                           </div>
                           <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
