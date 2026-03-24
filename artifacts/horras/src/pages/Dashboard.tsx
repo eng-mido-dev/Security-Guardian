@@ -3,13 +3,13 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { useLang } from "@/context/LangContext";
-import { api, type ApiVideo } from "@/lib/api";
+import { api, type ApiVideo, type ScanHistoryItem } from "@/lib/api";
 import { HalfCircleGauge } from "@/components/ui/circular-progress";
 import VideoModal from "@/components/VideoModal";
 import {
   ShieldCheck, Target, Link2, CheckSquare, Bell,
   ArrowLeft, ArrowRight, User, ClipboardCheck, Search, Calendar,
-  PlayCircle, BookOpen, AlertTriangle
+  PlayCircle, BookOpen, AlertTriangle, ShieldAlert, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminDashboard from "./AdminDashboard";
@@ -57,10 +57,17 @@ export default function Dashboard() {
   const [reminderVideos, setReminderVideos] = useState<ApiVideo[]>([]);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [activeVideo, setActiveVideo] = useState<ApiVideo | null>(null);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
 
   useEffect(() => {
     if (!isLoading && !user) setLocation("/login");
   }, [user, isLoading, setLocation]);
+
+  useEffect(() => {
+    if (user && !isAdmin) {
+      api.scan.history().then(setScanHistory).catch(() => {});
+    }
+  }, [user, isAdmin]);
 
   useEffect(() => {
     if (failedTopics && failedTopics.length > 0) {
@@ -280,6 +287,71 @@ export default function Dashboard() {
           </div>
         </motion.div>
       )}
+
+      {/* Scan History */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }} className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <Search className="w-4 h-4 text-primary" />
+            {isRTL ? "سجل فحص الروابط" : "Link Scan History"}
+          </h3>
+          <button
+            onClick={() => setLocation("/check-link")}
+            className="text-xs text-primary/70 hover:text-primary transition-colors flex items-center gap-1 font-medium"
+          >
+            {isRTL ? "فحص رابط جديد" : "Scan New Link"}
+            <ArrowDir className="w-3 h-3" />
+          </button>
+        </div>
+
+        {scanHistory.length === 0 ? (
+          <div className="glass-card rounded-2xl border-white/5 px-5 py-6 text-center text-sm text-muted-foreground">
+            {isRTL ? "لم تقم بفحص أي رابط بعد." : "No link scans yet."}{" "}
+            <button onClick={() => setLocation("/check-link")} className="text-primary hover:underline">
+              {isRTL ? "ابدأ الفحص الآن" : "Start scanning now"}
+            </button>
+          </div>
+        ) : (
+          <div className="glass-card rounded-2xl border-white/5 divide-y divide-white/5 overflow-hidden">
+            {scanHistory.map((scan, i) => {
+              const statusIcon = scan.status === "safe"
+                ? <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                : scan.status === "suspicious"
+                ? <AlertTriangle className="w-4 h-4 text-amber-400" />
+                : <ShieldAlert className="w-4 h-4 text-red-400" />;
+              const scoreColor = scan.status === "safe" ? "text-emerald-400" : scan.status === "suspicious" ? "text-amber-400" : "text-red-400";
+              const scoreBg = scan.status === "safe" ? "bg-emerald-500/10 border-emerald-500/20" : scan.status === "suspicious" ? "bg-amber-500/10 border-amber-500/20" : "bg-red-500/10 border-red-500/20";
+              return (
+                <motion.div
+                  key={scan.id}
+                  initial={{ opacity: 0, x: isRTL ? 8 : -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors"
+                >
+                  <div className="bg-black/30 p-2 rounded-xl border border-white/5 shrink-0">
+                    {statusIcon}
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <p className="text-sm font-mono text-white/80 truncate" dir="ltr">
+                      {scan.url.length > 48 ? scan.url.substring(0, 48) + "…" : scan.url}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {new Date(scan.scannedAt).toLocaleDateString(isRTL ? "ar-SA" : "en-US", {
+                        day: "numeric", month: "short", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full border font-bold shrink-0 ${scoreBg} ${scoreColor}`}>
+                    {scan.score}/100
+                  </span>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </motion.div>
 
       {/* Recent Activity */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">

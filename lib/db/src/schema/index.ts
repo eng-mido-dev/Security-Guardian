@@ -33,6 +33,16 @@ export const userActivityTable = pgTable("user_activity", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const scanHistoryTable = pgTable("scan_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  score: integer("score").notNull(),
+  status: text("status").notNull(),
+  report: text("report").notNull(),
+  scannedAt: timestamp("scanned_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, joinDate: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof usersTable.$inferSelect;

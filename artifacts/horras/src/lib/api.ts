@@ -72,6 +72,31 @@ export interface AdminUser {
   joinDate: string;
 }
 
+export interface ScanCheck {
+  label: string;
+  labelEn: string;
+  passed: boolean;
+  detail: string;
+  detailEn: string;
+}
+
+export interface ScanReport {
+  checks: ScanCheck[];
+  status: "safe" | "suspicious" | "danger";
+  score: number;
+  reachable: boolean;
+  isRedirected: boolean;
+  finalUrl?: string;
+}
+
+export interface ScanHistoryItem {
+  id: number;
+  url: string;
+  score: number;
+  status: "safe" | "suspicious" | "danger";
+  scannedAt: string;
+}
+
 export const api = {
   auth: {
     register: (name: string, email: string, password: string) =>
@@ -110,5 +135,11 @@ export const api = {
 
   admin: {
     users: () => request<AdminUser[]>("/admin/users"),
+  },
+
+  scan: {
+    check: (url: string) =>
+      request<ScanReport>("/scan", { method: "POST", body: JSON.stringify({ url }) }),
+    history: () => request<ScanHistoryItem[]>("/scan/history"),
   },
 };

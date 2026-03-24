@@ -4,6 +4,7 @@ import authRouter from "./auth";
 import videosRouter from "./videos";
 import activityRouter from "./activity";
 import adminRouter from "./admin";
+import scanRouter from "./scan";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(authRouter);
 router.use(videosRouter);
 router.use(activityRouter);
 router.use(adminRouter);
+router.use(scanRouter);
 
 export default router;
