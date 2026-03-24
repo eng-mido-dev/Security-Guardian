@@ -60,12 +60,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between h-16 gap-4">
 
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+            <button
+              onClick={() => {
+                if (location === "/") {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                } else {
+                  setLocation("/");
+                }
+              }}
+              className="flex items-center gap-2.5 group shrink-0 cursor-pointer"
+            >
               <div className="bg-primary/15 p-1.5 rounded-lg border border-primary/25 group-hover:bg-primary/25 transition-colors">
                 <Shield className="w-5 h-5 text-primary" />
               </div>
               <span className="text-xl font-black tracking-tight">{t("brand.name")}</span>
-            </Link>
+            </button>
 
             {/* Desktop Primary Nav */}
             <nav className="hidden md:flex items-center gap-0.5">

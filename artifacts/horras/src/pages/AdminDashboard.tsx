@@ -5,7 +5,7 @@ import { api, type ApiVideo, type AdminUser, type ApiReport } from "@/lib/api";
 import {
   Shield, Users, FileText, PlayCircle, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
-  Eye, Database, Play, Loader2, Clock
+  Eye, Database, Play, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -370,30 +370,16 @@ export default function AdminDashboard() {
                         <Input value={newVideo.category} onChange={(e) => setNewVideo((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">
                           {isRTL ? "المدة" : "Duration"}
-                          {durationFetching && (
-                            <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              {isRTL ? "جاري الجلب..." : "Fetching..."}
-                            </span>
-                          )}
                         </Label>
-                        <div className="relative">
-                          {durationFetching && (
-                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary/50 animate-spin pointer-events-none z-10" />
-                          )}
-                          {!durationFetching && newVideo.duration && (
-                            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-400/60 pointer-events-none z-10" />
-                          )}
-                          <Input
-                            value={newVideo.duration}
-                            onChange={(e) => setNewVideo((p) => ({ ...p, duration: e.target.value }))}
-                            className="h-10 rounded-xl bg-black/40 border-white/10 text-sm"
-                            placeholder={durationFetching ? (isRTL ? "جاري الجلب تلقائياً..." : "Auto-fetching...") : "60s"}
-                            readOnly={durationFetching}
-                          />
-                        </div>
+                        <Input
+                          value={durationFetching ? "" : (newVideo.duration || "")}
+                          onChange={(e) => setNewVideo((p) => ({ ...p, duration: e.target.value }))}
+                          className="h-10 rounded-xl bg-black/40 border-white/10 text-sm"
+                          placeholder={durationFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : "60s"}
+                          readOnly={durationFetching}
+                        />
                       </div>
                     </div>
                     <div className="space-y-1.5">
@@ -466,27 +452,16 @@ export default function AdminDashboard() {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">
                               {isRTL ? "المدة" : "Duration"}
-                              {durationFetching && (
-                                <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  {isRTL ? "جاري الجلب..." : "Fetching..."}
-                                </span>
-                              )}
                             </Label>
-                            <div className="relative">
-                              {durationFetching && (
-                                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary/50 animate-spin pointer-events-none z-10" />
-                              )}
-                              <Input
-                                value={editData.duration ?? video.duration}
-                                onChange={(e) => setEditData((p) => ({ ...p, duration: e.target.value }))}
-                                className="h-10 rounded-xl bg-black/40 border-white/10 text-sm"
-                                placeholder={durationFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : "60s"}
-                                readOnly={durationFetching}
-                              />
-                            </div>
+                            <Input
+                              value={durationFetching ? "" : (editData.duration ?? video.duration)}
+                              onChange={(e) => setEditData((p) => ({ ...p, duration: e.target.value }))}
+                              className="h-10 rounded-xl bg-black/40 border-white/10 text-sm"
+                              placeholder={durationFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : "60s"}
+                              readOnly={durationFetching}
+                            />
                           </div>
                         </div>
                         <div className="flex gap-3 justify-end">
