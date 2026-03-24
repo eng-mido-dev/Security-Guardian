@@ -9,6 +9,16 @@ import { Button } from "@/components/ui/button";
 import { useLang } from "@/context/LangContext";
 import { api } from "@/lib/api";
 
+function getLocalizedCategory(category: string, isRTL: boolean): string {
+  if (!category) return "";
+  const parts = category.split(/\s[-–]\s/);
+  if (parts.length < 2) return category;
+  const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+  const arPart = parts.find(hasArabic) ?? parts[0];
+  const enPart = parts.find((p) => !hasArabic(p)) ?? parts[1];
+  return isRTL ? arPart : enPart;
+}
+
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
   const patterns = [
@@ -143,10 +153,10 @@ export default function Home() {
   useEffect(() => {
     api.videos.list().then((videos) => {
       const cards: VideoCardData[] = videos.slice(0, 4).map((v) => ({
-        titleAr: v.title || "فيديو",
+        titleAr: v.titleAr || v.title || "فيديو",
         titleEn: v.title || "Video",
-        catAr: v.category || "توعية",
-        catEn: v.category || "Awareness",
+        catAr: getLocalizedCategory(v.category || "", true) || "توعية",
+        catEn: getLocalizedCategory(v.category || "", false) || "Awareness",
         duration: v.duration || "60s",
         url: v.url,
       }));

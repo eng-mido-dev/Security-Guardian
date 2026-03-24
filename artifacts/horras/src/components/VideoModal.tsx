@@ -140,6 +140,50 @@ export default function VideoModal({
                   flex: "0 0 auto",
                 }}
               >
+                {/* ─── FLOATING CLOSE BUTTON — always visible, never inside scrollable area ─── */}
+                <button
+                  onClick={onClose}
+                  aria-label={isRTL ? "إغلاق الفيديو" : "Close video"}
+                  style={{
+                    position: "absolute",
+                    top: "-18px",
+                    right: "-18px",
+                    zIndex: 10,
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    background: "rgba(10,10,10,0.95)",
+                    border: "2px solid rgba(255,255,255,0.15)",
+                    color: "rgba(255,255,255,0.8)",
+                    cursor: "pointer",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+                    transition: "background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s",
+                  }}
+                  onMouseEnter={(e) => {
+                    const b = e.currentTarget;
+                    b.style.background = "#FFB800";
+                    b.style.color = "#000";
+                    b.style.borderColor = "#FFB800";
+                    b.style.transform = "scale(1.1) rotate(90deg)";
+                    b.style.boxShadow = "0 8px 32px rgba(255,184,0,0.5)";
+                  }}
+                  onMouseLeave={(e) => {
+                    const b = e.currentTarget;
+                    b.style.background = "rgba(10,10,10,0.95)";
+                    b.style.color = "rgba(255,255,255,0.8)";
+                    b.style.borderColor = "rgba(255,255,255,0.15)";
+                    b.style.transform = "scale(1) rotate(0deg)";
+                    b.style.boxShadow = "0 8px 24px rgba(0,0,0,0.6)";
+                  }}
+                >
+                  <X style={{ width: "20px", height: "20px", strokeWidth: 2.5 }} />
+                </button>
                 {/* ─── CARD ─────────────────────────────────────────────
                     rounded-3xl (24px), max 90 vh.
                     • Video wrapper: flex-shrink 0, strict 16:9
@@ -307,47 +351,7 @@ export default function VideoModal({
                         )}
                       </div>
 
-                      {/* ─── CLOSE BUTTON ────────────────────────────────
-                          44×44px — meets touch target minimum.
-                          Placed inside the info panel so it is NEVER
-                          clipped by the card's overflow:hidden and NEVER
-                          lands in the browser's status-bar safe zone.
-                      ──────────────────────────────────────────────────── */}
-                      <button
-                        onClick={onClose}
-                        aria-label={isRTL ? "إغلاق الفيديو" : "Close video"}
-                        style={{
-                          width: "44px",
-                          height: "44px",
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1.5px solid rgba(255,255,255,0.12)",
-                          color: "rgba(255,255,255,0.7)",
-                          cursor: "pointer",
-                          transition:
-                            "background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          const b = e.currentTarget;
-                          b.style.background = "#FFB800";
-                          b.style.color = "#000";
-                          b.style.borderColor = "#FFB800";
-                          b.style.transform = "scale(1.08)";
-                        }}
-                        onMouseLeave={(e) => {
-                          const b = e.currentTarget;
-                          b.style.background = "rgba(255,255,255,0.06)";
-                          b.style.color = "rgba(255,255,255,0.7)";
-                          b.style.borderColor = "rgba(255,255,255,0.12)";
-                          b.style.transform = "scale(1)";
-                        }}
-                      >
-                        <X style={{ width: "18px", height: "18px", strokeWidth: 2.5 }} />
-                      </button>
+                      {/* Close button is floating above the card — see card wrapper */}
                     </div>
 
                     {/* ── Title — text-2xl (24px), primary gold ── */}

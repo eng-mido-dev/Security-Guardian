@@ -8,6 +8,16 @@ import VideoModal from "@/components/VideoModal";
 import VideoCard from "@/components/VideoCard";
 import { api, type ApiVideo } from "@/lib/api";
 
+function getLocalizedCategory(category: string, isRTL: boolean): string {
+  if (!category) return "";
+  const parts = category.split(/\s[-–]\s/);
+  if (parts.length < 2) return category;
+  const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+  const arPart = parts.find(hasArabic) ?? parts[0];
+  const enPart = parts.find((p) => !hasArabic(p)) ?? parts[1];
+  return isRTL ? arPart : enPart;
+}
+
 export default function Learn() {
   const { isRTL } = useLang();
   const { user } = useApp();
@@ -21,13 +31,13 @@ export default function Learn() {
     api.videos.list().then(setAdminVideos).catch(() => {});
   }, []);
 
-  const uniqueCats = Array.from(new Set(adminVideos.map((v) => v.category).filter(Boolean)));
+  const rawCats = Array.from(new Set(adminVideos.map((v) => v.category).filter(Boolean)));
   const allLabel = isRTL ? "الكل" : "All";
-  const categories = [allLabel, ...uniqueCats];
+  const allCats = [allLabel, ...rawCats];
 
   const filtered = activeTab === 0
     ? adminVideos
-    : adminVideos.filter((v) => v.category === categories[activeTab]);
+    : adminVideos.filter((v) => v.category === rawCats[activeTab - 1]);
 
   const openVideo = (video: ApiVideo) => {
     if (!user) { setShowLoginModal(true); return; }
@@ -53,9 +63,9 @@ export default function Learn() {
       </div>
 
       {/* Category Tabs */}
-      {categories.length > 1 && (
+      {allCats.length > 1 && (
         <div className="flex flex-wrap justify-center gap-2 mb-10">
-          {categories.map((cat, i) => (
+          {allCats.map((cat, i) => (
             <button
               key={cat}
               onClick={() => setActiveTab(i)}
@@ -65,7 +75,7 @@ export default function Learn() {
                   : "border border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
               }`}
             >
-              {cat}
+              {i === 0 ? cat : getLocalizedCategory(cat, isRTL)}
             </button>
           ))}
         </div>
