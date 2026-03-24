@@ -1,16 +1,55 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/context/LangContext";
 import { api, type ApiVideo, type AdminUser } from "@/lib/api";
 import {
   Shield, Users, FileText, PlayCircle, Plus, Trash2,
   Edit3, Save, X, Youtube, AlertCircle, Check, Activity,
-  Eye, Database, Play
+  Eye, Database, Play, Loader2, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+
+declare global {
+  interface Window {
+    YT: {
+      Player: new (
+        el: HTMLElement,
+        opts: {
+          height?: string;
+          width?: string;
+          videoId: string;
+          playerVars?: Record<string, number | string>;
+          events?: {
+            onReady?: (event: { target: { getDuration(): number; destroy(): void } }) => void;
+            onError?: () => void;
+          };
+        }
+      ) => void;
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+function loadYouTubeAPI(): Promise<void> {
+  return new Promise((resolve) => {
+    if (window.YT?.Player) { resolve(); return; }
+    const existing = document.getElementById("yt-iframe-api");
+    if (!existing) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.id = "yt-iframe-api";
+      document.head.appendChild(tag);
+    }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      prev?.();
+      resolve();
+    };
+  });
+}
 
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -63,11 +102,89 @@ export default function AdminDashboard() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newVideo, setNewVideo] = useState<Partial<Omit<ApiVideo, "id" | "createdAt">>>({ title: "", url: "", category: "", duration: "" });
   const [activeTab, setActiveTab] = useState<"videos" | "reports" | "users">("videos");
+  const [durationFetching, setDurationFetching] = useState(false);
+  const cancelFetchRef = useRef<(() => void) | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     api.videos.list().then(setVideos).finally(() => setVideosLoading(false));
     api.admin.users().then(setUsers).catch(() => {});
   }, []);
+
+  const fetchDuration = useCallback(async (url: string, target: "new" | "edit") => {
+    const videoId = extractYouTubeId(url);
+    if (!videoId) return;
+
+    cancelFetchRef.current?.();
+    setDurationFetching(true);
+
+    let cancelled = false;
+    let containerEl: HTMLDivElement | null = null;
+
+    cancelFetchRef.current = () => {
+      cancelled = true;
+      try { containerEl?.remove(); } catch {}
+    };
+
+    try {
+      await loadYouTubeAPI();
+      if (cancelled) return;
+
+      containerEl = document.createElement("div");
+      containerEl.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+      document.body.appendChild(containerEl);
+
+      new window.YT.Player(containerEl, {
+        height: "1",
+        width: "1",
+        videoId,
+        playerVars: { autoplay: 0 },
+        events: {
+          onReady: (event) => {
+            if (!cancelled) {
+              const secs = event.target.getDuration();
+              if (secs > 0) {
+                const mins = Math.floor(secs / 60);
+                const s = Math.floor(secs % 60);
+                const formatted = `${mins}:${s.toString().padStart(2, "0")}`;
+                if (target === "new") {
+                  setNewVideo((p) => ({ ...p, duration: formatted }));
+                } else {
+                  setEditData((p) => ({ ...p, duration: formatted }));
+                }
+              }
+            }
+            event.target.destroy();
+            containerEl?.remove();
+            setDurationFetching(false);
+          },
+          onError: () => {
+            containerEl?.remove();
+            setDurationFetching(false);
+          },
+        },
+      });
+    } catch {
+      containerEl?.remove();
+      setDurationFetching(false);
+    }
+  }, []);
+
+  const handleUrlChange = useCallback(
+    (url: string, target: "new" | "edit") => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (target === "new") {
+        setNewVideo((p) => ({ ...p, url }));
+      } else {
+        setEditData((p) => ({ ...p, url }));
+      }
+      const videoId = extractYouTubeId(url);
+      if (videoId) {
+        debounceRef.current = setTimeout(() => fetchDuration(url, target), 800);
+      }
+    },
+    [fetchDuration]
+  );
 
   const saveEdit = async (id: number) => {
     try {
@@ -121,6 +238,8 @@ export default function AdminDashboard() {
     { id: "reports" as const, label: isRTL ? "البلاغات" : "Reports", icon: <FileText className="w-4 h-4" /> },
     { id: "users" as const, label: isRTL ? "المستخدمون" : "Users", icon: <Users className="w-4 h-4" /> },
   ];
+
+  const urlInputClass = "h-10 rounded-xl bg-black/40 border-white/10 text-sm px-12 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50";
 
   return (
     <div className="min-h-screen bg-[#070709]">
@@ -209,7 +328,13 @@ export default function AdminDashboard() {
                         <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
                         <div className="relative">
                           <Youtube className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none z-10" />
-                          <Input value={newVideo.url} onChange={(e) => setNewVideo((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pr-12 pl-3 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
+                          <Input
+                            value={newVideo.url}
+                            onChange={(e) => handleUrlChange(e.target.value, "new")}
+                            className={urlInputClass}
+                            style={{ direction: "ltr", textAlign: "left" }}
+                            placeholder="https://youtube.com/watch?v=..."
+                          />
                         </div>
                       </div>
                       <div className="space-y-1.5">
@@ -217,12 +342,34 @@ export default function AdminDashboard() {
                         <Input value={newVideo.category} onChange={(e) => setNewVideo((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">{isRTL ? "المدة" : "Duration"}</Label>
-                        <Input value={newVideo.duration} onChange={(e) => setNewVideo((p) => ({ ...p, duration: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" placeholder="60s" />
+                        <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                          {isRTL ? "المدة" : "Duration"}
+                          {durationFetching && (
+                            <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              {isRTL ? "جاري الجلب..." : "Fetching..."}
+                            </span>
+                          )}
+                        </Label>
+                        <div className="relative">
+                          {durationFetching && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary/50 animate-spin pointer-events-none z-10" />
+                          )}
+                          {!durationFetching && newVideo.duration && (
+                            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-400/60 pointer-events-none z-10" />
+                          )}
+                          <Input
+                            value={newVideo.duration}
+                            onChange={(e) => setNewVideo((p) => ({ ...p, duration: e.target.value }))}
+                            className="h-10 rounded-xl bg-black/40 border-white/10 text-sm"
+                            placeholder={durationFetching ? (isRTL ? "جاري الجلب تلقائياً..." : "Auto-fetching...") : "60s"}
+                            readOnly={durationFetching}
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-3 justify-end">
-                      <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => setIsAddingNew(false)}><X className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setIsAddingNew(false); cancelFetchRef.current?.(); }}><X className="w-4 h-4" /></Button>
                       <Button size="sm" className="rounded-xl gap-1.5" onClick={addVideo} disabled={!newVideo.title}>
                         <Save className="w-4 h-4" /> {isRTL ? "حفظ" : "Save"}
                       </Button>
@@ -257,7 +404,13 @@ export default function AdminDashboard() {
                             <Label className="text-xs text-muted-foreground">{isRTL ? "رابط YouTube" : "YouTube URL"}</Label>
                             <div className="relative">
                               <Youtube className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none z-10" />
-                              <Input value={editData.url ?? video.url} onChange={(e) => setEditData((p) => ({ ...p, url: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm pr-12 pl-3 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/50" style={{ direction: "ltr", textAlign: "left" }} placeholder="https://youtube.com/watch?v=..." />
+                              <Input
+                                value={editData.url ?? video.url}
+                                onChange={(e) => handleUrlChange(e.target.value, "edit")}
+                                className={urlInputClass}
+                                style={{ direction: "ltr", textAlign: "left" }}
+                                placeholder="https://youtube.com/watch?v=..."
+                              />
                             </div>
                           </div>
                           <div className="space-y-1.5">
@@ -265,12 +418,31 @@ export default function AdminDashboard() {
                             <Input value={editData.category ?? video.category} onChange={(e) => setEditData((p) => ({ ...p, category: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
                           </div>
                           <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{isRTL ? "المدة" : "Duration"}</Label>
-                            <Input value={editData.duration ?? video.duration} onChange={(e) => setEditData((p) => ({ ...p, duration: e.target.value }))} className="h-10 rounded-xl bg-black/40 border-white/10 text-sm" />
+                            <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                              {isRTL ? "المدة" : "Duration"}
+                              {durationFetching && (
+                                <span className="flex items-center gap-1 text-primary/60 text-[10px] font-medium">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  {isRTL ? "جاري الجلب..." : "Fetching..."}
+                                </span>
+                              )}
+                            </Label>
+                            <div className="relative">
+                              {durationFetching && (
+                                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary/50 animate-spin pointer-events-none z-10" />
+                              )}
+                              <Input
+                                value={editData.duration ?? video.duration}
+                                onChange={(e) => setEditData((p) => ({ ...p, duration: e.target.value }))}
+                                className="h-10 rounded-xl bg-black/40 border-white/10 text-sm"
+                                placeholder={durationFetching ? (isRTL ? "جاري الجلب..." : "Fetching...") : "60s"}
+                                readOnly={durationFetching}
+                              />
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-3 justify-end">
-                          <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setEditingId(null); setEditData({}); }}><X className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setEditingId(null); setEditData({}); cancelFetchRef.current?.(); }}><X className="w-4 h-4" /></Button>
                           <Button size="sm" className="rounded-xl gap-1.5" onClick={() => saveEdit(video.id)}><Save className="w-4 h-4" /> {isRTL ? "حفظ" : "Save"}</Button>
                         </div>
                       </div>
@@ -364,7 +536,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                      {users.map((u) => (
+                    {users.map((u) => (
                       <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
