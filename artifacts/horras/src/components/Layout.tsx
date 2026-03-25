@@ -252,8 +252,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               {/* Language toggle */}
               <button
                 onClick={toggleLang}
+                aria-label={lang === "ar" ? "Switch to English" : "التحويل للعربية"}
                 title={lang === "ar" ? "Switch to English" : "التحويل للعربية"}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-xs font-bold text-muted-foreground hover:text-white"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-primary/15 hover:border-primary/30 hover:text-primary transition-all text-xs font-bold text-muted-foreground"
               >
                 <Globe className="w-3.5 h-3.5" />
                 {lang === "ar" ? "EN" : "AR"}
@@ -343,7 +344,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="border-t border-white/5 pt-3 mt-3 flex items-center gap-3">
                 <button
                   onClick={toggleLang}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-muted-foreground"
+                  aria-label={lang === "ar" ? "Switch to English" : "التحويل للعربية"}
+                  title={lang === "ar" ? "Switch to English" : "التحويل للعربية"}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/30 bg-primary/10 text-xs font-bold text-primary hover:bg-primary/20 transition-colors"
                 >
                   <Globe className="w-3.5 h-3.5" />
                   {lang === "ar" ? "EN" : "AR"}

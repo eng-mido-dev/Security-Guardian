@@ -79,8 +79,12 @@ interface VideoCardProps {
 }
 
 export default function VideoCard({ video, isRTL, onClick, index = 0 }: VideoCardProps) {
-  const displayTitle = isRTL && video.titleAr ? video.titleAr : video.title;
-  const displayDesc = isRTL && video.descriptionAr ? video.descriptionAr : video.description;
+  const displayTitle = isRTL
+    ? (video.titleAr || video.title)
+    : (video.title || video.titleAr);
+  const displayDesc = isRTL
+    ? (video.descriptionAr || video.description)
+    : (video.description || video.descriptionAr);
 
   return (
     <motion.button

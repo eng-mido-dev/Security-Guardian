@@ -48,8 +48,8 @@ export default function VideoModal({
   const { setIsVideoOpen } = useApp();
   const videoId = getYouTubeId(url);
 
-  const displayTitle       = isRTL && titleAr       ? titleAr       : title;
-  const displayDescription = isRTL && descriptionAr ? descriptionAr : description;
+  const displayTitle       = isRTL ? (titleAr || title) : (title || titleAr);
+  const displayDescription = isRTL ? (descriptionAr || description) : (description || descriptionAr);
   const textAlign = isRTL ? "right" : "left";
   const dir       = isRTL ? "rtl"   : "ltr";
 

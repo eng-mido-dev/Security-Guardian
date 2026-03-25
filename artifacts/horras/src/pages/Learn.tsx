@@ -68,6 +68,8 @@ export default function Learn() {
           {allCats.map((cat, i) => (
             <button
               key={cat}
+              role="tab"
+              aria-selected={activeTab === i}
               onClick={() => setActiveTab(i)}
               className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
                 activeTab === i

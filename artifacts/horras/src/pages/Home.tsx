@@ -154,7 +154,7 @@ export default function Home() {
     api.videos.list().then((videos) => {
       const cards: VideoCardData[] = videos.slice(0, 4).map((v) => ({
         titleAr: v.titleAr || v.title || "فيديو",
-        titleEn: v.title || "Video",
+        titleEn: v.title || v.titleAr || "Video",
         catAr: getLocalizedCategory(v.category || "", true) || "توعية",
         catEn: getLocalizedCategory(v.category || "", false) || "Awareness",
         duration: v.duration || "60s",
