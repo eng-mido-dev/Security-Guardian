@@ -134,6 +134,7 @@ export default function AdminDashboard() {
   const [userDeleting, setUserDeleting] = useState<number | null>(null);
   const [userResetting, setUserResetting] = useState<number | null>(null);
   const [resetResult, setResetResult] = useState<{ email: string; password: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string; email: string } | null>(null);
 
   // ── Analytics tab ──
   const [analytics, setAnalytics] = useState<ApiAnalytics | null>(null);
@@ -538,8 +539,16 @@ export default function AdminDashboard() {
   };
 
   // ── User management ───────────────────────────────────────────────────────────
-  const deleteUser = async (id: number) => {
-    if (!confirm(isRTL ? "هل أنت متأكد من حذف هذا المستخدم؟" : "Delete this user permanently?")) return;
+  const deleteUser = (id: number) => {
+    const target = users.find((u) => u.id === id);
+    if (!target) return;
+    setDeleteConfirm({ id, name: target.name, email: target.email });
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteConfirm) return;
+    const { id } = deleteConfirm;
+    setDeleteConfirm(null);
     setUserDeleting(id);
     try {
       await api.admin.deleteUser(id);
@@ -614,7 +623,7 @@ export default function AdminDashboard() {
     <div className="flex h-screen overflow-hidden bg-[#070709]" dir={isRTL ? "rtl" : "ltr"}>
 
       {/* ── Desktop Sidebar ── */}
-      <aside className="hidden md:flex flex-col w-56 shrink-0 h-screen border-e border-white/10 bg-gray-950/50 backdrop-blur-xl sticky top-0 z-30">
+      <aside className="hidden md:flex flex-col w-56 shrink-0 h-screen border-e border-white/10 bg-gray-950/50 backdrop-blur-xl z-30">
         {/* Brand */}
         <div className="px-5 py-[18px] border-b border-white/[0.07] shrink-0">
           <div className="flex items-center gap-3">
@@ -708,7 +717,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Scrollable content */}
-        <main className="flex-1 overflow-y-auto scrollbar-none pb-20 md:pb-0">
+        <main className="flex-1 overflow-y-auto scrollbar-none scroll-smooth pb-20 md:pb-0">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
 
             {/* Stats */}
@@ -1973,6 +1982,70 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      {/* ── Delete User Confirmation Modal ── */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9998] flex items-center justify-center p-4"
+            onClick={() => setDeleteConfirm(null)}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            {/* Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 6 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="relative z-10 w-full max-w-sm bg-[#111114] border border-white/[0.09] rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.8)] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Red top accent */}
+              <div className="h-[2px] bg-gradient-to-r from-transparent via-red-500/70 to-transparent" />
+              <div className="p-6">
+                {/* Icon */}
+                <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4 mx-auto">
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                </div>
+                {/* Title */}
+                <h3 className="text-base font-black text-center mb-1">
+                  {isRTL ? "تأكيد حذف المستخدم" : "Delete User Permanently?"}
+                </h3>
+                <p className="text-xs text-muted-foreground text-center mb-1">
+                  {isRTL ? "سيتم حذف هذا المستخدم نهائيًا ولا يمكن التراجع عن هذا الإجراء." : "This action is irreversible. The user will be permanently removed."}
+                </p>
+                {/* User info */}
+                <div className="mt-4 bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 mb-5 text-center">
+                  <p className="font-bold text-sm text-white/90">{deleteConfirm.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">{deleteConfirm.email}</p>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-2.5">
+                  <Button
+                    variant="ghost"
+                    className="flex-1 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-semibold"
+                    onClick={() => setDeleteConfirm(null)}
+                  >
+                    {isRTL ? "إلغاء" : "Cancel"}
+                  </Button>
+                  <Button
+                    className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold border-0"
+                    onClick={confirmDeleteUser}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 me-1.5" />
+                    {isRTL ? "حذف نهائيًا" : "Delete Forever"}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

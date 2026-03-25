@@ -301,7 +301,7 @@ export default function Dashboard() {
                     onClick={() => setActiveCategory(cat)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap border transition-all duration-200 shrink-0 ${
                       isActive
-                        ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25"
+                        ? "bg-primary/90 text-primary-foreground border-primary/80"
                         : "bg-white/[0.04] text-muted-foreground border-white/[0.07] hover:text-white hover:bg-white/[0.08] hover:border-white/[0.12]"
                     }`}
                   >

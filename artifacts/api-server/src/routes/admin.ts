@@ -49,6 +49,7 @@ router.delete("/admin/users/:id", authMiddleware, adminMiddleware, async (req: A
   if (!user) return res.status(404).json({ error: "not_found" });
   if (user.role === "admin") return res.status(403).json({ error: "cannot_delete_admin" });
 
+  await db.delete(userActivityTable).where(eq(userActivityTable.userId, id));
   await db.delete(usersTable).where(eq(usersTable.id, id));
   await logAdminAction(
     req.user!.email,
