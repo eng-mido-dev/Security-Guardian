@@ -228,49 +228,55 @@ export default function Home() {
               {isRTL ? "منصة الأمن الرقمي العربية رقم 1" : "The #1 Arabic Cybersecurity Awareness Platform"}
             </motion.div>
 
-            {/* Massive heading — gradient text */}
+            {/* Massive heading — two stacked block rows, no absolute positioning */}
             <motion.h1
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.06 }}
               style={{ fontFamily: "'Cairo', 'Tajawal', sans-serif" }}
-              className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-7 leading-[1.06]"
+              className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-7 leading-[1.15] flex flex-col items-center gap-0"
             >
-              <span className="bg-gradient-to-b from-white via-white/95 to-white/70 bg-clip-text text-transparent">
+              {/* ── Row 1: static text — always its own line, never shifts ── */}
+              <span className="block bg-gradient-to-b from-white via-white/95 to-white/70 bg-clip-text text-transparent">
                 {t("hero.title1")}
-              </span>{" "}
+              </span>
 
               {/*
-                Anti-layout-shift container:
-                - An invisible ghost span (aria-hidden) holding the FULL final phrase
-                  reserves the exact width/height the text will occupy.
-                - The visible typed text sits on top via absolute positioning.
-                - This prevents the surrounding content from shifting as letters appear.
+                ── Row 2: Typing animation container ──────────────────────────
+                Structural isolation rules:
+                  • display: flex keeps the text + cursor on one line
+                  • min-height locks the row height to exactly one line of text
+                    (1.15em matches the h1 line-height) — never collapses to 0
+                  • NO position: absolute — text is in normal flow, cannot
+                    overlap Row 1 or any element outside this container
+                  • overflow: hidden clips any sub-pixel jitter at the edges
+                  • justify-center keeps content centred without width shift
               */}
-              <span className="relative inline-block">
-                {/* Ghost: holds layout space, never visible to user */}
-                <span aria-hidden="true" className="gold-gradient-text invisible select-none whitespace-nowrap">
-                  {finalPhrase}
+              <span
+                className="flex items-center justify-center overflow-hidden w-full"
+                style={{
+                  minHeight: "1.15em",
+                  direction: isRTL ? "rtl" : "ltr",
+                }}
+              >
+                {/* Gold gradient typed text — grows left-to-right (or RTL) in flow */}
+                <span className="gold-gradient-text whitespace-nowrap">
+                  {/* Non-breaking space keeps height when display is empty */}
+                  {typedText || "\u00A0"}
                 </span>
 
-                {/* Typed text + cursor — overlaid on the ghost */}
+                {/* Blinking cursor — fades out 2 s after typing finishes */}
                 <span
-                  className="absolute inset-0 flex items-center whitespace-nowrap"
-                  style={{ direction: isRTL ? "rtl" : "ltr" }}
-                >
-                  {/* Apply gold gradient directly to the visible text */}
-                  <span className="gold-gradient-text">{typedText}</span>
-
-                  {/* Blinking cursor — disappears 2 s after typing ends */}
-                  <span
-                    className="inline-block w-[3px] rounded-sm bg-primary ms-1 align-middle transition-opacity duration-500"
-                    style={{
-                      height: "0.82em",
-                      opacity: cursorVisible ? 1 : 0,
-                      animation: cursorVisible ? "horras-blink 1s step-start infinite" : "none",
-                    }}
-                  />
-                </span>
+                  className="inline-block w-[3px] rounded-sm bg-primary ms-1 shrink-0 transition-opacity duration-500"
+                  style={{
+                    height: "0.82em",
+                    verticalAlign: "middle",
+                    opacity: cursorVisible ? 1 : 0,
+                    animation: cursorVisible
+                      ? "horras-blink 1s step-start infinite"
+                      : "none",
+                  }}
+                />
               </span>
             </motion.h1>
 
