@@ -244,24 +244,31 @@ export default function Home() {
               {/*
                 ── Row 2: Typing animation container ──────────────────────────
                 Structural isolation rules:
-                  • display: flex keeps the text + cursor on one line
-                  • min-height locks the row height to exactly one line of text
-                    (1.15em matches the h1 line-height) — never collapses to 0
-                  • NO position: absolute — text is in normal flow, cannot
-                    overlap Row 1 or any element outside this container
-                  • overflow: hidden clips any sub-pixel jitter at the edges
-                  • justify-center keeps content centred without width shift
+                  • display: flex — text + cursor share one line, no wrapping
+                  • min-height: 1.15em — row never collapses, matches line-height
+                  • NO overflow: hidden — Arabic diacritics / tall glyphs not clipped
+                  • NO w-full — container sizes to content; parent items-center
+                    centres it without any width calculations
+                  • padding: 0 1rem — breathing room so glyphs/cursor aren't
+                    flush against the edge; box-sizing: border-box keeps widths
+                    exact
+                  • max-width: 100% — safe on narrow mobile viewports
+                  • NO position: absolute — fully in normal flow, cannot
+                    overlap "احم نفسك" or anything else
               */}
               <span
-                className="flex items-center justify-center overflow-hidden w-full"
+                className="flex items-center"
                 style={{
                   minHeight: "1.15em",
                   direction: isRTL ? "rtl" : "ltr",
+                  padding: "0 1rem",
+                  boxSizing: "border-box",
+                  maxWidth: "100%",
                 }}
               >
-                {/* Gold gradient typed text — grows left-to-right (or RTL) in flow */}
+                {/* Gold gradient typed text — expands naturally with content */}
                 <span className="gold-gradient-text whitespace-nowrap">
-                  {/* Non-breaking space keeps height when display is empty */}
+                  {/* Non-breaking space preserves row height before first char */}
                   {typedText || "\u00A0"}
                 </span>
 
@@ -271,6 +278,7 @@ export default function Home() {
                   style={{
                     height: "0.82em",
                     verticalAlign: "middle",
+                    boxSizing: "border-box",
                     opacity: cursorVisible ? 1 : 0,
                     animation: cursorVisible
                       ? "horras-blink 1s step-start infinite"
