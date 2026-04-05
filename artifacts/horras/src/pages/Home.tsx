@@ -106,47 +106,54 @@ function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: b
 }
 
 
-const TYPING_WORDS_AR = ["من الاحتيال الإلكتروني", "من التصيد الاحتيالي", "من سرقة البيانات", "من الهجمات السيبرانية"];
-const TYPING_WORDS_EN = ["from Online Fraud", "from Phishing Attacks", "from Data Theft", "from Cyber Attacks"];
+/* ─────────────────────────────────────────────────────────────
+   Final phrases — typed once then held. Pick the most impactful.
+   Arabic is RTL-aligned automatically via the parent dir="rtl".
+───────────────────────────────────────────────────────────── */
+const FINAL_PHRASE_AR = "من الاحتيال الإلكتروني";
+const FINAL_PHRASE_EN = "from Online Fraud";
 
-function useTypingEffect(words: string[], speed = 70, pause = 1800) {
+/**
+ * One-shot typing hook — types `text` character by character,
+ * stops at the last character, then hides the cursor after `cursorDelay` ms.
+ * Never loops or deletes.
+ */
+function useTypingOnce(text: string, speed = 65, cursorDelay = 2000) {
   const [display, setDisplay] = useState("");
-  const [wordIdx, setWordIdx] = useState(0);
-  const [charIdx, setCharIdx] = useState(0);
-  const [deleting, setDeleting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [cursorVisible, setCursorVisible] = useState(true);
 
+  // Type one character at a time until the full phrase is shown
   useEffect(() => {
-    const current = words[wordIdx];
-    let delay = deleting ? speed / 2 : speed;
-    if (!deleting && charIdx === current.length) delay = pause;
-    if (deleting && charIdx === 0) delay = 300;
+    if (done) return;
+    if (display.length >= text.length) {
+      setDone(true);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setDisplay(text.slice(0, display.length + 1));
+    }, speed);
+    return () => clearTimeout(timer);
+  }, [display, done, text, speed]);
 
-    const t = setTimeout(() => {
-      if (!deleting && charIdx < current.length) {
-        setDisplay(current.slice(0, charIdx + 1));
-        setCharIdx((c) => c + 1);
-      } else if (!deleting && charIdx === current.length) {
-        setDeleting(true);
-      } else if (deleting && charIdx > 0) {
-        setDisplay(current.slice(0, charIdx - 1));
-        setCharIdx((c) => c - 1);
-      } else {
-        setDeleting(false);
-        setWordIdx((i) => (i + 1) % words.length);
-      }
-    }, delay);
-    return () => clearTimeout(t);
-  }, [charIdx, deleting, wordIdx, words, speed, pause]);
+  // Hide cursor `cursorDelay` ms after typing finishes
+  useEffect(() => {
+    if (!done) return;
+    const timer = setTimeout(() => setCursorVisible(false), cursorDelay);
+    return () => clearTimeout(timer);
+  }, [done, cursorDelay]);
 
-  return display;
+  return { display, cursorVisible };
 }
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { t, isRTL } = useLang();
   const ChevronDir = isRTL ? ChevronLeft : ChevronRight;
-  const typingWords = isRTL ? TYPING_WORDS_AR : TYPING_WORDS_EN;
-  const typedText = useTypingEffect(typingWords);
+
+  // Pick the final phrase based on language direction
+  const finalPhrase = isRTL ? FINAL_PHRASE_AR : FINAL_PHRASE_EN;
+  const { display: typedText, cursorVisible } = useTypingOnce(finalPhrase);
 
   const [videoCards, setVideoCards] = useState<VideoCardData[]>([]);
 
@@ -226,14 +233,44 @@ export default function Home() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.06 }}
+              style={{ fontFamily: "'Cairo', 'Tajawal', sans-serif" }}
               className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-7 leading-[1.06]"
             >
               <span className="bg-gradient-to-b from-white via-white/95 to-white/70 bg-clip-text text-transparent">
                 {t("hero.title1")}
               </span>{" "}
-              <span className="gold-gradient-text block sm:inline">
-                {typedText || "\u00A0"}
-                <span className="inline-block w-[3px] h-[0.82em] bg-primary ms-1 align-middle animate-pulse rounded-sm" />
+
+              {/*
+                Anti-layout-shift container:
+                - An invisible ghost span (aria-hidden) holding the FULL final phrase
+                  reserves the exact width/height the text will occupy.
+                - The visible typed text sits on top via absolute positioning.
+                - This prevents the surrounding content from shifting as letters appear.
+              */}
+              <span className="relative inline-block">
+                {/* Ghost: holds layout space, never visible to user */}
+                <span aria-hidden="true" className="gold-gradient-text invisible select-none whitespace-nowrap">
+                  {finalPhrase}
+                </span>
+
+                {/* Typed text + cursor — overlaid on the ghost */}
+                <span
+                  className="absolute inset-0 flex items-center whitespace-nowrap"
+                  style={{ direction: isRTL ? "rtl" : "ltr" }}
+                >
+                  {/* Apply gold gradient directly to the visible text */}
+                  <span className="gold-gradient-text">{typedText}</span>
+
+                  {/* Blinking cursor — disappears 2 s after typing ends */}
+                  <span
+                    className="inline-block w-[3px] rounded-sm bg-primary ms-1 align-middle transition-opacity duration-500"
+                    style={{
+                      height: "0.82em",
+                      opacity: cursorVisible ? 1 : 0,
+                      animation: cursorVisible ? "horras-blink 1s step-start infinite" : "none",
+                    }}
+                  />
+                </span>
               </span>
             </motion.h1>
 
