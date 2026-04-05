@@ -274,14 +274,26 @@ export default function Home() {
               */}
               <div
                 style={{
+                  /* Vertical alignment — text centred in its reserved space */
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  minHeight: "1.15em",
-                  padding: "0 0.5rem",
+                  /*
+                    minHeight uses line-height 1.8 so Arabic diacritics
+                    (dots, Hamza, shadda) have room above and below the
+                    baseline and are never cramped or clipped.
+                  */
+                  minHeight: "1.8em",
+                  /* Horizontal breathing room + bottom pad so the blinking
+                     cursor never touches the container edge */
+                  padding: "0 0.5rem 10px",
                   boxSizing: "border-box",
                   maxWidth: "100%",
                   overflow: "visible",
+                  /* Clear separation between the typing row and the
+                     "احم نفسك" row above, and the subtitle below */
+                  marginTop: "0.25rem",
+                  marginBottom: "2rem",
                 }}
               >
                 {/*
@@ -306,8 +318,13 @@ export default function Home() {
                       : `linear-gradient(to right, black 0 ${progress * 100}%, transparent ${progress * 100}% 100%)`,
                   }}
                 >
-                  {/* Full phrase — always in DOM, no substring truncation */}
-                  <span className="gold-gradient-text whitespace-nowrap">
+                  {/* Full phrase — always in DOM, no substring truncation.
+                      lineHeight 1.8 gives Arabic dots, Hamza, and shadda
+                      full vertical room so nothing is cramped or cut. */}
+                  <span
+                    className="gold-gradient-text whitespace-nowrap"
+                    style={{ lineHeight: 1.8 }}
+                  >
                     {finalPhrase}
                   </span>
 
