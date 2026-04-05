@@ -107,43 +107,50 @@ function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: b
 
 
 /* ─────────────────────────────────────────────────────────────
-   Final phrases — typed once then held. Pick the most impactful.
-   Arabic is RTL-aligned automatically via the parent dir="rtl".
+   Final phrases — revealed once then held permanently.
+   Arabic RTL direction is handled by the container's dir attribute.
 ───────────────────────────────────────────────────────────── */
 const FINAL_PHRASE_AR = "من الاحتيال الإلكتروني";
 const FINAL_PHRASE_EN = "from Online Fraud";
 
 /**
- * One-shot typing hook — types `text` character by character,
- * stops at the last character, then hides the cursor after `cursorDelay` ms.
- * Never loops or deletes.
+ * Mask-image reveal hook.
+ *
+ * Why mask-image instead of character-by-character substring?
+ *   • The FULL text is always in the DOM — Arabic ligatures and Kashida
+ *     always render correctly regardless of reveal progress.
+ *   • No DOM mutations per frame; the mask is a pure CSS paint operation.
+ *   • Zero clipping: mask makes pixels transparent, it never clips the
+ *     layout box, so diacritics above/below the baseline are never cut.
+ *
+ * Returns:
+ *   progress     – 0 → 1, drives the mask-image gradient stop
+ *   cursorVisible – true until 2 s after reveal completes
  */
-function useTypingOnce(text: string, speed = 65, cursorDelay = 2000) {
-  const [display, setDisplay] = useState("");
-  const [done, setDone] = useState(false);
+function useRevealProgress(length: number, speed = 60, cursorDelay = 2000) {
+  const [count, setCount]               = useState(0);
+  const [done, setDone]                 = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
 
-  // Type one character at a time until the full phrase is shown
+  // Advance one "character step" per tick — same timing feel as typing
   useEffect(() => {
     if (done) return;
-    if (display.length >= text.length) {
-      setDone(true);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setDisplay(text.slice(0, display.length + 1));
-    }, speed);
-    return () => clearTimeout(timer);
-  }, [display, done, text, speed]);
+    if (count >= length) { setDone(true); return; }
+    const t = setTimeout(() => setCount((c) => c + 1), speed);
+    return () => clearTimeout(t);
+  }, [count, done, length, speed]);
 
-  // Hide cursor `cursorDelay` ms after typing finishes
+  // Hide cursor 2 s after the last step
   useEffect(() => {
     if (!done) return;
-    const timer = setTimeout(() => setCursorVisible(false), cursorDelay);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setCursorVisible(false), cursorDelay);
+    return () => clearTimeout(t);
   }, [done, cursorDelay]);
 
-  return { display, cursorVisible };
+  return {
+    progress: length > 0 ? count / length : 0, // 0 = nothing shown, 1 = fully revealed
+    cursorVisible,
+  };
 }
 
 export default function Home() {
@@ -153,7 +160,7 @@ export default function Home() {
 
   // Pick the final phrase based on language direction
   const finalPhrase = isRTL ? FINAL_PHRASE_AR : FINAL_PHRASE_EN;
-  const { display: typedText, cursorVisible } = useTypingOnce(finalPhrase);
+  const { progress, cursorVisible } = useRevealProgress(finalPhrase.length);
 
   const [videoCards, setVideoCards] = useState<VideoCardData[]>([]);
 
@@ -228,7 +235,7 @@ export default function Home() {
               {isRTL ? "منصة الأمن الرقمي العربية رقم 1" : "The #1 Arabic Cybersecurity Awareness Platform"}
             </motion.div>
 
-            {/* Massive heading — two stacked block rows, no absolute positioning */}
+            {/* Massive heading — two stacked block rows */}
             <motion.h1
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
@@ -236,56 +243,88 @@ export default function Home() {
               style={{ fontFamily: "'Cairo', 'Tajawal', sans-serif" }}
               className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-7 leading-[1.15] flex flex-col items-center gap-0"
             >
-              {/* ── Row 1: static text — always its own line, never shifts ── */}
+              {/* ── Row 1: static text — locked in place, never moves ── */}
               <span className="block bg-gradient-to-b from-white via-white/95 to-white/70 bg-clip-text text-transparent">
                 {t("hero.title1")}
               </span>
 
               {/*
-                ── Row 2: Typing animation container ──────────────────────────
-                Structural isolation rules:
-                  • display: flex — text + cursor share one line, no wrapping
-                  • min-height: 1.15em — row never collapses, matches line-height
-                  • NO overflow: hidden — Arabic diacritics / tall glyphs not clipped
-                  • NO w-full — container sizes to content; parent items-center
-                    centres it without any width calculations
-                  • padding: 0 1rem — breathing room so glyphs/cursor aren't
-                    flush against the edge; box-sizing: border-box keeps widths
-                    exact
-                  • max-width: 100% — safe on narrow mobile viewports
-                  • NO position: absolute — fully in normal flow, cannot
-                    overlap "احم نفسك" or anything else
+                ── Row 2: Safe Zone ────────────────────────────────────────────
+                The OUTER div is the "Safe Zone" — it defines the static layout
+                space. Its dimensions are always equal to the full phrase so
+                Row 1 ("احم نفسك") and all content below never shift.
+
+                Rules enforced here:
+                  • display: flex + align-items: center  — one line, centred
+                  • min-height: 1.15em                   — never collapses
+                  • overflow: visible (default)           — nothing clips
+                  • padding: 0 0.5rem / box-sizing:border-box — breathing room
+                  • max-width: 100%                       — mobile safe
+                  • NO position: absolute on anything     — fully in flow
+
+                The INNER span is the animation zone:
+                  • Full Arabic text is always in the DOM (correct Kashida &
+                    ligatures at every stage — no substring hacks needed)
+                  • mask-image grows from 0% → 100% to reveal the text
+                  • Reveal direction matches reading direction (RTL or LTR)
+                  • mask never clips layout — transparent ≠ display:none,
+                    so diacritics above/below the em-box are always safe
+                  • The cursor lives INSIDE the masked wrapper so it appears
+                    naturally the moment the last character is uncovered
               */}
-              <span
-                className="flex items-center"
+              <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   minHeight: "1.15em",
-                  direction: isRTL ? "rtl" : "ltr",
-                  padding: "0 1rem",
+                  padding: "0 0.5rem",
                   boxSizing: "border-box",
                   maxWidth: "100%",
+                  overflow: "visible",
                 }}
               >
-                {/* Gold gradient typed text — expands naturally with content */}
-                <span className="gold-gradient-text whitespace-nowrap">
-                  {/* Non-breaking space preserves row height before first char */}
-                  {typedText || "\u00A0"}
-                </span>
-
-                {/* Blinking cursor — fades out 2 s after typing finishes */}
+                {/*
+                  Masked inner span — text + cursor revealed together.
+                  The mask stop moves from 0 → 100% over the animation duration.
+                  Both spans share this mask so the cursor appears only when
+                  the rightmost/leftmost character is uncovered.
+                */}
                 <span
-                  className="inline-block w-[3px] rounded-sm bg-primary ms-1 shrink-0 transition-opacity duration-500"
                   style={{
-                    height: "0.82em",
-                    verticalAlign: "middle",
-                    boxSizing: "border-box",
-                    opacity: cursorVisible ? 1 : 0,
-                    animation: cursorVisible
-                      ? "horras-blink 1s step-start infinite"
-                      : "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    direction: isRTL ? "rtl" : "ltr",
+                    // mask-image: hard-edge gradient (no feathering)
+                    // RTL — text starts on the right, reveal right → left
+                    // LTR — text starts on the left,  reveal left → right
+                    maskImage: isRTL
+                      ? `linear-gradient(to left, black 0 ${progress * 100}%, transparent ${progress * 100}% 100%)`
+                      : `linear-gradient(to right, black 0 ${progress * 100}%, transparent ${progress * 100}% 100%)`,
+                    WebkitMaskImage: isRTL
+                      ? `linear-gradient(to left, black 0 ${progress * 100}%, transparent ${progress * 100}% 100%)`
+                      : `linear-gradient(to right, black 0 ${progress * 100}%, transparent ${progress * 100}% 100%)`,
                   }}
-                />
-              </span>
+                >
+                  {/* Full phrase — always in DOM, no substring truncation */}
+                  <span className="gold-gradient-text whitespace-nowrap">
+                    {finalPhrase}
+                  </span>
+
+                  {/* Cursor — inside the mask, visible when reveal completes */}
+                  <span
+                    className="inline-block w-[3px] rounded-sm bg-primary ms-1 shrink-0 transition-opacity duration-500"
+                    style={{
+                      height: "0.82em",
+                      boxSizing: "border-box",
+                      opacity: cursorVisible ? 1 : 0,
+                      animation: cursorVisible
+                        ? "horras-blink 1s step-start infinite"
+                        : "none",
+                    }}
+                  />
+                </span>
+              </div>
             </motion.h1>
 
             {/* Subtitle */}
