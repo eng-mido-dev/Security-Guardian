@@ -232,7 +232,7 @@ export default function Home() {
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/35 bg-primary/10 backdrop-blur-sm text-primary text-sm font-semibold mb-10 shadow-[0_0_20px_rgba(255,184,0,0.15)]"
             >
               <ShieldCheck className="w-4 h-4" />
-              {isRTL ? "منصة الأمن الرقمي العربية رقم 1" : "The #1 Arabic Cybersecurity Awareness Platform"}
+             
             </motion.div>
 
             {/* Massive heading — two stacked block rows */}
