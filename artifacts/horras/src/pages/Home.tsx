@@ -196,7 +196,10 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* ── Hero Section — Cyber Premium ── */}
-      <section className="relative pt-28 pb-24 overflow-hidden min-h-screen flex items-center" style={{ minHeight: "100dvh" }}>
+      <section
+        className="relative overflow-hidden flex flex-col justify-center items-center"
+        style={{ minHeight: "100dvh", padding: "5rem 0" }}
+      >
 
         {/* ── Layered mesh-gradient background ── */}
         <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
@@ -234,7 +237,7 @@ export default function Home() {
               transition={{ duration: 0.55, delay: 0.06 }}
               style={{
                 fontFamily: "'Cairo', 'Tajawal', sans-serif",
-                fontSize: "clamp(2.5rem, 7vw, 6rem)",
+                fontSize: "clamp(1.5rem, 8vw, 3.5rem)",
               }}
               className="font-black tracking-tight mb-7 leading-[1.15] flex flex-col items-center gap-0"
             >
