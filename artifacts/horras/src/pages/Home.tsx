@@ -110,7 +110,7 @@ function HomeVideoCard({ card, isRTL, onClick }: { card: VideoCardData; isRTL: b
    Final phrases — revealed once then held permanently.
    Arabic RTL direction is handled by the container's dir attribute.
 ───────────────────────────────────────────────────────────── */
-const FINAL_PHRASE_AR = "من الاحتيال الإلكتروني";
+const FINAL_PHRASE_AR = "من الإحتيال الإلكتروني";
 const FINAL_PHRASE_EN = "from Online Fraud";
 
 /**
