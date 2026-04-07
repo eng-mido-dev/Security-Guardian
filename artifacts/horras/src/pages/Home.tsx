@@ -237,7 +237,7 @@ export default function Home() {
               transition={{ duration: 0.55, delay: 0.06 }}
               style={{
                 fontFamily: "'Cairo', 'Tajawal', sans-serif",
-                fontSize: "clamp(1.5rem, 8vw, 3.5rem)",
+                fontSize: "clamp(1.5rem, 8vw, 3.4rem)",
               }}
               className="font-black tracking-tight mb-7 leading-[1.15] flex flex-col items-center gap-0"
             >
