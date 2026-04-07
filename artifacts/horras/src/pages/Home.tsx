@@ -262,7 +262,7 @@ export default function Home() {
               */}
               <div
                 style={{
-                  padding: "0 0.5rem",
+                  padding: "0 0.5rem 8px",
                   boxSizing: "border-box",
                   maxWidth: "100%",
                   marginTop: "0.5rem",
@@ -282,7 +282,7 @@ export default function Home() {
                     style={{
                       gridArea: "1/1",
                       visibility: "hidden",
-                      lineHeight: 1.8,
+                      lineHeight: 1.6,
                       userSelect: "none",
                     }}
                   >
@@ -294,7 +294,8 @@ export default function Home() {
                     className="gold-gradient-text whitespace-nowrap"
                     style={{
                       gridArea: "1/1",
-                      lineHeight: 1.8,
+                      lineHeight: 1.6,
+                      paddingBottom: "8px",
                       display: "inline-flex",
                       alignItems: "center",
                     }}
