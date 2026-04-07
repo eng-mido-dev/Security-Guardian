@@ -34,7 +34,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "gate.close": "إغلاق",
     "nav.logout": "تسجيل الخروج",
     // Hero
-    "hero.title1": "احمِ نفسك",
+    "hero.title1": "إحمي نفسك",
     "hero.title2": "الاحتيال الإلكتروني",
     "hero.subtitle": "منصة حُراس توفر لك الأدوات والمعرفة اللازمة لتصفح الإنترنت بأمان. اختبر أمانك، افحص الروابط، وتعلّم كيف تحمي بياناتك.",
     "hero.checkLink": "افحص رابطاً",
