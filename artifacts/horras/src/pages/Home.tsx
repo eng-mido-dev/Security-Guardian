@@ -239,7 +239,7 @@ export default function Home() {
                 fontFamily: "'Cairo', 'Tajawal', sans-serif",
                 fontSize: "clamp(1.5rem, 8vw, 3.5rem)",
               }}
-              className="font-black tracking-tight mb-7 leading-[1.5] pb-2 flex flex-col items-center gap-0"
+              className="font-black tracking-tight mb-7 leading-[1.4] pb-2 flex flex-col items-center gap-0"
             >
               {/* ── Row 1: static text — locked in place, never moves ── */}
               <span className="block bg-gradient-to-b from-white via-white/95 to-white/70 bg-clip-text text-transparent">
